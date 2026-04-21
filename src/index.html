@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Slack Emoji Builder</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Slack Emoji Builder</h1>
+
+    <div class="field">
+      <label for="text-input">Text</label>
+      <input type="text" id="text-input" placeholder="e.g. 🎉 done!" maxlength="20" />
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="font-size">Font size</label>
+        <select id="font-size">
+          <option value="20">Small</option>
+          <option value="32" selected>Medium</option>
+          <option value="44">Large</option>
+          <option value="56">Extra large</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="font-family">Font</label>
+        <select id="font-family">
+          <option value="sans-serif" selected>Sans-serif</option>
+          <option value="serif">Serif</option>
+          <option value="monospace">Monospace</option>
+          <option value="Impact, sans-serif">Impact</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="color-row">
+      <div class="field">
+        <label>Text color</label>
+        <div class="color-input-wrap">
+          <input type="color" id="text-color" value="#ffffff" />
+          <span class="color-hex" id="text-color-hex">#ffffff</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Background</label>
+        <div class="color-input-wrap">
+          <input type="color" id="bg-color" value="#4a9cf6" />
+          <span class="color-hex" id="bg-color-hex">#4a9cf6</span>
+        </div>
+      </div>
+    </div>
+
+    <button id="generate-btn">Generate Image</button>
+
+    <div class="preview-section" id="preview-section">
+      <span class="preview-label">Preview</span>
+      <div class="canvas-wrap" id="canvas-wrap"></div>
+      <a id="download-link" download="emoji.png">
+        <button class="download-btn" id="download-btn">Download PNG (128×128)</button>
+      </a>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
