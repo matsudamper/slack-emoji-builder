@@ -29,29 +29,7 @@ const animationCount   = document.getElementById('animation-count');
 const animationClearBtn = document.getElementById('animation-clear-btn');
 const animContainer    = document.getElementById('anim-container');
 
-const ANIMATION_DEFS = [
-  { key: 'scale', label: '拡大縮小', defaultSpeed: 2, controls: [
-    { key: 'amount', label: '拡大量', min: 10, max: 50, value: 30, suffix: '%' },
-  ] },
-  { key: 'rotation', label: '回転', defaultSpeed: 1 },
-  { key: 'shake', label: 'ぷるぷる', defaultSpeed: 4 },
-  { key: 'bounce', label: 'ぴょんぴょん', defaultSpeed: 2 },
-  { key: 'heartbeat', label: '心拍', defaultSpeed: 2 },
-  { key: 'sway', label: 'ゆらゆら', defaultSpeed: 2 },
-  { key: 'dodge', label: '反復横跳び', defaultSpeed: 2 },
-  { key: 'spinBack', label: 'ぐるん戻り', defaultSpeed: 1 },
-  { key: 'pop', label: 'びっくりポップ', defaultSpeed: 2 },
-  { key: 'jitter', label: 'ガタガタ暴走', defaultSpeed: 5 },
-  { key: 'glitch', label: 'グリッチ', defaultSpeed: 4 },
-  { key: 'slot', label: 'スロット風', defaultSpeed: 1 },
-  { key: 'blink', label: '点滅警告', defaultSpeed: 3 },
-  { key: 'rainbow', label: 'レインボー文字', defaultSpeed: 2 },
-  { key: 'typing', label: 'タイピング表示', defaultSpeed: 1 },
-  { key: 'squash', label: '押しつぶし', defaultSpeed: 2 },
-  { key: 'warp', label: 'ワープ', defaultSpeed: 1 },
-  { key: 'zoom', label: 'ズーム接近', defaultSpeed: 1 },
-];
-
+const BASE_SIZE = 128;
 const STORAGE_KEY = 'slackEmojiBuilderSettings';
 const DEFAULT_FONT_FAMILY = fontFamSel.options[0]?.value || 'sans-serif';
 const LEGACY_FONT_FAMILY_MAP = {
@@ -62,8 +40,16 @@ const LEGACY_FONT_FAMILY_MAP = {
 };
 
 let currentDirection = 'horizontal';
-let animationControls = {};
-let animationExpanded = true;
+
+const animationManager = new AnimationManager({
+  toggle: animationToggle,
+  body: animationBody,
+  count: animationCount,
+  clearButton: animationClearBtn,
+  container: animContainer,
+  baseSize: BASE_SIZE,
+  onChange: saveSettings,
+});
 
 function isFontFamilyOption(value) {
   return Array.from(fontFamSel.options).some(option => option.value === value);
@@ -114,147 +100,7 @@ directionBtns.forEach(btn => {
   });
 });
 
-function formatSliderValue(controlDef, value) {
-  return String(value) + (controlDef.suffix || '');
-}
-
-function buildAnimationControls() {
-  const controls = {};
-
-  ANIMATION_DEFS.forEach(def => {
-    const row = document.createElement('div');
-    row.className = 'anim-row';
-
-    const label = document.createElement('label');
-    label.className = 'auto-label';
-
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = `anim-${def.key}`;
-
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(def.label));
-
-    const sub = document.createElement('div');
-    sub.className = 'anim-sub';
-    sub.id = `anim-${def.key}-controls`;
-    sub.setAttribute('aria-hidden', 'true');
-
-    const sliderDefs = [
-      ...(def.controls || []),
-      { key: 'speed', label: '速度', min: 1, max: 5, value: def.defaultSpeed || 3, suffix: '' },
-    ];
-    const sliders = {};
-
-    sliderDefs.forEach(controlDef => {
-      const control = document.createElement('div');
-      control.className = 'anim-control';
-
-      const controlId = def.key === 'scale' && controlDef.key === 'amount'
-        ? 'scale-amount'
-        : `anim-${def.key}-${controlDef.key}`;
-
-      const controlLabel = document.createElement('label');
-      controlLabel.htmlFor = controlId;
-      controlLabel.textContent = controlDef.label;
-
-      const rowInner = document.createElement('div');
-      rowInner.className = 'font-size-row';
-
-      const input = document.createElement('input');
-      input.type = 'range';
-      input.id = controlId;
-      input.min = controlDef.min;
-      input.max = controlDef.max;
-      input.value = controlDef.value;
-
-      const value = document.createElement('span');
-      value.className = 'font-size-value';
-      value.id = controlId + '-value';
-      value.textContent = formatSliderValue(controlDef, input.value);
-
-      input.addEventListener('input', () => {
-        value.textContent = formatSliderValue(controlDef, input.value);
-        saveSettings();
-      });
-
-      rowInner.appendChild(input);
-      rowInner.appendChild(value);
-      control.appendChild(controlLabel);
-      control.appendChild(rowInner);
-      sub.appendChild(control);
-
-      sliders[controlDef.key] = { input, value, def: controlDef };
-    });
-
-    checkbox.addEventListener('change', () => {
-      applyAnimVisibility();
-      saveSettings();
-    });
-
-    row.appendChild(label);
-    row.appendChild(sub);
-    animContainer.appendChild(row);
-
-    controls[def.key] = { def, checkbox, sub, sliders };
-  });
-
-  return controls;
-}
-
-function setSliderValue(slider, value) {
-  if (!slider || value === undefined) return;
-  slider.input.value = value;
-  slider.value.textContent = formatSliderValue(slider.def, slider.input.value);
-}
-
-animationControls = buildAnimationControls();
-
-function getEnabledAnimationCount() {
-  return Object.values(animationControls).filter(control => control.checkbox.checked).length;
-}
-
-function updateAnimationCount() {
-  const count = getEnabledAnimationCount();
-  animationCount.textContent = String(count);
-  animationClearBtn.disabled = count === 0;
-}
-
-function setAnimationExpanded(expanded) {
-  animationExpanded = expanded;
-  animationToggle.classList.toggle('collapsed', !expanded);
-  animationToggle.setAttribute('aria-expanded', String(expanded));
-  animationBody.classList.toggle('collapsed', !expanded);
-}
-
-animationToggle.addEventListener('click', () => {
-  setAnimationExpanded(!animationExpanded);
-  saveSettings();
-});
-
-animationClearBtn.addEventListener('click', () => {
-  Object.values(animationControls).forEach(control => {
-    control.checkbox.checked = false;
-  });
-  applyAnimVisibility();
-  saveSettings();
-});
-
-function getAnimationSettings() {
-  const animations = {};
-  Object.entries(animationControls).forEach(([key, control]) => {
-    animations[key] = {
-      enabled: control.checkbox.checked,
-    };
-    Object.entries(control.sliders).forEach(([sliderKey, slider]) => {
-      animations[key][sliderKey] = slider.input.value;
-    });
-  });
-  return animations;
-}
-
 function saveSettings() {
-  const animations = getAnimationSettings();
   const settings = {
     fontSize:      fontSizeEl.value,
     fontAuto:      fontAutoEl.checked,
@@ -266,52 +112,11 @@ function saveSettings() {
     borderSize:    borderSizeEl.value,
     borderColor:   borderColorEl.value,
     direction:     currentDirection,
-    animationExpanded: animationExpanded,
-    animations:    animations,
-    animScale:     animations.scale.enabled,
-    scaleAmount:   animations.scale.amount,
-    animRotation:  animations.rotation.enabled,
-    rotationSpeed: animations.rotation.speed,
+    ...animationManager.getStorageState(),
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   } catch (_) { /* ignore storage errors */ }
-}
-
-function applyStoredAnimationSettings(settings) {
-  const storedAnimations = settings.animations || {};
-
-  Object.entries(animationControls).forEach(([key, control]) => {
-    const stored = storedAnimations[key] || {};
-
-    if (stored.enabled !== undefined) {
-      control.checkbox.checked = stored.enabled;
-    }
-    Object.entries(control.sliders).forEach(([sliderKey, slider]) => {
-      if (stored[sliderKey] !== undefined) {
-        setSliderValue(slider, stored[sliderKey]);
-      }
-    });
-  });
-
-  if (!storedAnimations.scale) {
-    if (settings.animScale !== undefined) {
-      animationControls.scale.checkbox.checked = settings.animScale;
-    }
-    if (settings.scaleAmount !== undefined) {
-      setSliderValue(animationControls.scale.sliders.amount, settings.scaleAmount);
-    }
-  }
-  if (!storedAnimations.rotation) {
-    if (settings.animRotation !== undefined) {
-      animationControls.rotation.checkbox.checked = settings.animRotation;
-    }
-    if (settings.rotationSpeed !== undefined) {
-      setSliderValue(animationControls.rotation.sliders.speed, settings.rotationSpeed);
-    }
-  }
-
-  applyAnimVisibility();
 }
 
 function loadSettings() {
@@ -359,25 +164,10 @@ function loadSettings() {
   if (settings.direction !== undefined) {
     setDirection(settings.direction);
   }
-  if (settings.animationExpanded !== undefined) {
-    setAnimationExpanded(settings.animationExpanded);
-  }
-  applyStoredAnimationSettings(settings);
+  animationManager.applyStorageState(settings);
 }
 
 loadSettings();
-
-function applyAnimVisibility() {
-  Object.values(animationControls).forEach(control => {
-    const visible = control.checkbox.checked;
-    control.sub.classList.toggle('visible', visible);
-    control.sub.setAttribute('aria-hidden', String(!visible));
-  });
-  updateAnimationCount();
-}
-
-setAnimationExpanded(animationExpanded);
-applyAnimVisibility();
 
 function applyBgTransparent() {
   const isTransparent = bgTransparentEl.checked;
@@ -436,13 +226,8 @@ fontFamSel.addEventListener('change',  () => { saveSettings(); });
 // Initialize slider state
 fontSizeEl.disabled = fontAutoEl.checked;
 
-const BASE_SIZE = 128;
-const ANIMATION_TOTAL_FRAMES = 24;
-const ANIMATION_FRAME_DELAY = 70;
-const ANIMATION_MEASURE_PADDING = BASE_SIZE * 2;
 const FALLBACK_ASCENT_RATIO  = 0.8;
 const FALLBACK_DESCENT_RATIO = 0.2;
-const SLOT_CHARS = '!?#$%&*+0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 function measureTightLine(ctx, line, fontSize) {
   const metrics = ctx.measureText(line || ' ');
@@ -751,280 +536,6 @@ function calculateAutoFontSize(text, fontFamily, canvasSize, borderSize, lineBre
   return lo;
 }
 
-function getAnimationSpeed(key) {
-  const slider = animationControls[key]?.sliders.speed;
-  const speed = slider ? parseInt(slider.input.value, 10) : 1;
-  return Number.isFinite(speed) ? speed : 1;
-}
-
-function getAnimationControlValue(key, controlKey, fallback) {
-  const slider = animationControls[key]?.sliders[controlKey];
-  const value = slider ? parseFloat(slider.input.value) : fallback;
-  return Number.isFinite(value) ? value : fallback;
-}
-
-function isAnimationEnabled() {
-  return Object.values(animationControls).some(control => control.checkbox.checked);
-}
-
-function getPhase(frame, speed) {
-  return ((frame / ANIMATION_TOTAL_FRAMES) * speed) % 1;
-}
-
-function addTranslate(opts, x, y) {
-  opts.translateX = (opts.translateX || 0) + x;
-  opts.translateY = (opts.translateY || 0) + y;
-}
-
-function addRotation(opts, degrees) {
-  opts.rotation = (opts.rotation || 0) + degrees;
-}
-
-function multiplyScale(opts, x, y) {
-  opts.scaleX = (opts.scaleX === undefined ? 1 : opts.scaleX) * x;
-  opts.scaleY = (opts.scaleY === undefined ? 1 : opts.scaleY) * y;
-}
-
-function multiplyAlpha(opts, alpha) {
-  opts.alpha = (opts.alpha === undefined ? 1 : opts.alpha) * alpha;
-}
-
-function easeInOutCubic(t) {
-  return t < 0.5
-    ? 4 * t * t * t
-    : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3);
-}
-
-function easeOutBack(t) {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-}
-
-function pulse(t, center, width) {
-  return Math.exp(-Math.pow((t - center) / width, 2));
-}
-
-function hash01(n) {
-  const x = Math.sin(n * 12.9898) * 43758.5453;
-  return x - Math.floor(x);
-}
-
-function buildSlotText(text, phase, frame) {
-  const chars = [...text];
-  if (phase > 0.82) return text;
-
-  const stopCount = Math.floor((phase / 0.82) * (chars.length + 1));
-  return chars.map((ch, i) => {
-    if (ch === ' ' || i < stopCount) return ch;
-    const index = (frame * 7 + i * 13 + Math.floor(phase * 30)) % SLOT_CHARS.length;
-    return SLOT_CHARS[index];
-  }).join('');
-}
-
-function buildTypingText(text, phase) {
-  const chars = [...text];
-  if (phase > 0.78) return text;
-
-  const count = Math.floor((phase / 0.78) * (chars.length + 1));
-  return chars.slice(0, count).join('');
-}
-
-function applyAnimationEffect(key, phase, frame, opts, baseText) {
-  switch (key) {
-    case 'scale': {
-      const amount = getAnimationControlValue('scale', 'amount', 30) / 100;
-      const scale = 1 + amount * Math.sin(2 * Math.PI * phase);
-      multiplyScale(opts, scale, scale);
-      break;
-    }
-    case 'rotation':
-      addRotation(opts, 360 * phase);
-      break;
-    case 'shake':
-      addTranslate(opts, Math.sin(2 * Math.PI * phase) * 8, Math.sin(2 * Math.PI * phase * 2) * 1.5);
-      addRotation(opts, Math.sin(2 * Math.PI * phase * 2) * 3);
-      break;
-    case 'bounce': {
-      const jump = Math.sin(Math.PI * phase);
-      const landing = Math.pow(Math.max(0, Math.cos(2 * Math.PI * phase)), 8);
-      addTranslate(opts, 0, -24 * jump + 5 * landing);
-      multiplyScale(opts, 1 + 0.16 * landing, 1 - 0.13 * landing);
-      break;
-    }
-    case 'heartbeat': {
-      const beat = pulse(phase, 0.16, 0.055) + pulse(phase, 0.34, 0.075) * 0.75;
-      const scale = 1 + 0.28 * beat;
-      multiplyScale(opts, scale, scale);
-      break;
-    }
-    case 'sway':
-      addRotation(opts, Math.sin(2 * Math.PI * phase) * 12);
-      break;
-    case 'dodge':
-      addTranslate(opts, Math.sin(2 * Math.PI * phase) * 28, 0);
-      break;
-    case 'spinBack': {
-      const rotation = phase < 0.68
-        ? 360 * easeOutCubic(phase / 0.68)
-        : 360 * (1 - easeInOutCubic((phase - 0.68) / 0.32));
-      addRotation(opts, rotation);
-      break;
-    }
-    case 'pop': {
-      const scale = 1 + 0.58 * pulse(phase, 0.14, 0.08) - 0.12 * pulse(phase, 0.36, 0.11);
-      multiplyScale(opts, scale, scale);
-      break;
-    }
-    case 'jitter': {
-      const bucket = Math.floor((frame + 1) * getAnimationSpeed('jitter') * 1.7);
-      addTranslate(opts, (hash01(bucket) - 0.5) * 14, (hash01(bucket + 9) - 0.5) * 10);
-      addRotation(opts, (hash01(bucket + 17) - 0.5) * 14);
-      break;
-    }
-    case 'glitch': {
-      const bucket = Math.floor((frame + 1) * getAnimationSpeed('glitch') * 1.25);
-      opts.glitch = true;
-      opts.glitchSeed = bucket;
-      opts.glitchAmount = 0.8 + hash01(bucket + 3) * 0.8;
-      if (hash01(bucket + 7) > 0.55) {
-        addTranslate(opts, (hash01(bucket + 13) - 0.5) * 8, 0);
-      }
-      break;
-    }
-    case 'slot':
-      opts.text = buildSlotText(baseText, phase, frame);
-      break;
-    case 'blink':
-      opts.textColor = phase < 0.5 ? '#ffd900' : '#ff2f3f';
-      opts.borderColor = phase < 0.5 ? '#3d2500' : '#ffffff';
-      opts.bgColor = phase < 0.5 ? '#1f1f1f' : '#ffcc00';
-      break;
-    case 'rainbow':
-      opts.textColor = `hsl(${Math.round(phase * 360)}, 100%, 62%)`;
-      break;
-    case 'typing':
-      opts.text = buildTypingText(baseText, phase);
-      break;
-    case 'squash': {
-      const squash = pulse(phase, 0.18, 0.16);
-      multiplyScale(opts, 1 + 0.28 * squash, 1 - 0.42 * squash);
-      addTranslate(opts, 0, 10 * squash);
-      break;
-    }
-    case 'warp':
-      if (phase < 0.42) {
-        const t = easeInOutCubic(phase / 0.42);
-        addTranslate(opts, -78 * t, 0);
-        multiplyScale(opts, 1 - 0.68 * t, 1 - 0.68 * t);
-        multiplyAlpha(opts, 1 - 0.7 * t);
-      } else if (phase < 0.54) {
-        multiplyScale(opts, 0.2, 0.2);
-        multiplyAlpha(opts, 0);
-      } else {
-        const t = easeOutCubic((phase - 0.54) / 0.46);
-        addTranslate(opts, 78 * (1 - t), 0);
-        multiplyScale(opts, 0.32 + 0.68 * t, 0.32 + 0.68 * t);
-        multiplyAlpha(opts, Math.min(1, t + 0.2));
-      }
-      break;
-    case 'zoom': {
-      const t = phase < 0.78 ? easeOutBack(phase / 0.78) : 1;
-      const scale = 0.18 + 0.82 * t;
-      multiplyScale(opts, scale, scale);
-      multiplyAlpha(opts, Math.min(1, phase * 5));
-      break;
-    }
-    default:
-      break;
-  }
-}
-
-function buildFrameOptions(frame, animationLayout) {
-  const opts = {};
-  const baseText = getBaseText();
-
-  ANIMATION_DEFS.forEach(def => {
-    const control = animationControls[def.key];
-    if (!control?.checkbox.checked) return;
-
-    const speed = getAnimationSpeed(def.key);
-    applyAnimationEffect(def.key, getPhase(frame, speed), frame, opts, baseText);
-  });
-
-  if (animationLayout?.offsetY) {
-    addTranslate(opts, 0, animationLayout.offsetY);
-  }
-
-  return opts;
-}
-
-function measureCanvasAlphaBounds(canvas, padding) {
-  const ctx = canvas.getContext('2d');
-  const width = canvas.width;
-  const height = canvas.height;
-  let data;
-  try {
-    data = ctx.getImageData(0, 0, width, height).data;
-  } catch (_) {
-    return null;
-  }
-  let top = height;
-  let bottom = -1;
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      if (data[(y * width + x) * 4 + 3] > 0) {
-        if (y < top) top = y;
-        if (y > bottom) bottom = y;
-      }
-    }
-  }
-
-  if (bottom < top) return null;
-  return {
-    top: top - padding,
-    bottom: bottom - padding,
-  };
-}
-
-function buildAnimationLayout(fontSize) {
-  let top = Infinity;
-  let bottom = -Infinity;
-
-  for (let frame = 0; frame < ANIMATION_TOTAL_FRAMES; frame++) {
-    const frameCanvas = drawEmoji(BASE_SIZE, fontSize, {
-      ...buildFrameOptions(frame),
-      skipBackground: true,
-      outputPadding: ANIMATION_MEASURE_PADDING,
-    });
-    const bounds = measureCanvasAlphaBounds(frameCanvas, ANIMATION_MEASURE_PADDING);
-    if (!bounds) continue;
-
-    top = Math.min(top, bounds.top);
-    bottom = Math.max(bottom, bounds.bottom);
-  }
-
-  if (!Number.isFinite(top) || !Number.isFinite(bottom)) {
-    return { offsetY: 0 };
-  }
-
-  const animationCenterY = (top + bottom + 1) / 2;
-  return { offsetY: BASE_SIZE / 2 - animationCenterY };
-}
-
-function buildGif(size, fontSize, animationLayout) {
-  var encoder = new GifEncoder(size, size);
-  for (var f = 0; f < ANIMATION_TOTAL_FRAMES; f++) {
-    encoder.addFrame(drawEmoji(size, fontSize, buildFrameOptions(f, animationLayout)), { delay: ANIMATION_FRAME_DELAY });
-  }
-  return encoder;
-}
-
 generateBtn.addEventListener('click', async () => {
   if (!textInput.value.trim()) {
     textInput.focus();
@@ -1048,8 +559,8 @@ generateBtn.addEventListener('click', async () => {
   canvasWrapDark.innerHTML = '';
   canvasWrapLight.innerHTML = '';
 
-  const animated = isAnimationEnabled();
-  const animationLayout = animated ? buildAnimationLayout(fontSize) : null;
+  const animated = animationManager.isEnabled();
+  const animationLayout = animated ? animationManager.buildLayout(fontSize, drawEmoji, text) : null;
 
   const sizes = [
     { size: BASE_SIZE, label: '128×128' },
@@ -1060,7 +571,7 @@ generateBtn.addEventListener('click', async () => {
   [canvasWrapDark, canvasWrapLight].forEach(wrap => {
     sizes.forEach(({ size, label }) => {
       if (animated) {
-        const gif = buildGif(size, fontSize, animationLayout);
+        const gif = animationManager.buildGif(size, fontSize, animationLayout, drawEmoji, text);
         const img = document.createElement('img');
         img.src = gif.toDataURL();
         img.title = label;
@@ -1098,7 +609,7 @@ generateBtn.addEventListener('click', async () => {
   const safeName = textInput.value.trim().replace(/[/\\:*?"<>|]/g, '_') || 'emoji';
 
   if (animated) {
-    const mainGif = buildGif(BASE_SIZE, fontSize, animationLayout);
+    const mainGif = animationManager.buildGif(BASE_SIZE, fontSize, animationLayout, drawEmoji, text);
     downloadLink.href = mainGif.toDataURL();
     downloadLink.download = safeName + '.gif';
     downloadBtn.textContent = 'Download GIF (128×128)';
