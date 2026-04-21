@@ -367,13 +367,33 @@ button:active {
   margin-bottom: 0;
 }
 
+.anim-container {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.anim-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.anim-configs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .anim-sub {
-  display: none;
-  margin-left: 20px;
+  visibility: hidden;
 }
 
 .anim-sub.visible {
-  display: block;
+  visibility: visible;
 }
 
 .size-box img {
