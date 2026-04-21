@@ -266,6 +266,27 @@ button:active {
   color: #9b9ca0;
 }
 
+.preview-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.preview-actions a {
+  display: flex;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.preview-actions button {
+  height: 100%;
+  margin-top: 0;
+  min-height: 48px;
+  line-height: 1.2;
+  white-space: normal;
+}
+
 .download-btn {
   background: #27a867;
   margin-top: 0;
