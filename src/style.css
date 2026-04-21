@@ -366,3 +366,18 @@ button:active {
   white-space: nowrap;
   margin-bottom: 0;
 }
+
+.anim-sub {
+  display: none;
+  margin-left: 20px;
+}
+
+.anim-sub.visible {
+  display: block;
+}
+
+.size-box img {
+  display: block;
+  image-rendering: pixelated;
+  outline: 1px solid rgba(148, 148, 148, 0.4);
+}

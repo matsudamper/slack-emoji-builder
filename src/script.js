@@ -24,6 +24,15 @@ const directionToggle  = document.getElementById('direction-toggle');
 const directionIndicator = document.getElementById('direction-indicator');
 const directionBtns    = directionToggle.querySelectorAll('.direction-btn');
 
+const animScaleEl       = document.getElementById('anim-scale');
+const scaleAmountEl     = document.getElementById('scale-amount');
+const scaleAmountVal    = document.getElementById('scale-amount-value');
+const scaleAmountField  = document.getElementById('scale-amount-field');
+const animRotationEl    = document.getElementById('anim-rotation');
+const rotationSpeedEl   = document.getElementById('rotation-speed');
+const rotationSpeedVal  = document.getElementById('rotation-speed-value');
+const rotationSpeedField = document.getElementById('rotation-speed-field');
+
 const STORAGE_KEY = 'slackEmojiBuilderSettings';
 
 let currentDirection = 'horizontal';
@@ -59,6 +68,10 @@ function saveSettings() {
     borderSize:    borderSizeEl.value,
     borderColor:   borderColorEl.value,
     direction:     currentDirection,
+    animScale:     animScaleEl.checked,
+    scaleAmount:   scaleAmountEl.value,
+    animRotation:  animRotationEl.checked,
+    rotationSpeed: rotationSpeedEl.value,
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -110,9 +123,37 @@ function loadSettings() {
   if (settings.direction !== undefined) {
     setDirection(settings.direction);
   }
+  if (settings.animScale !== undefined) {
+    animScaleEl.checked = settings.animScale;
+    applyAnimVisibility();
+  }
+  if (settings.scaleAmount !== undefined) {
+    scaleAmountEl.value = settings.scaleAmount;
+    scaleAmountVal.textContent = settings.scaleAmount + '%';
+  }
+  if (settings.animRotation !== undefined) {
+    animRotationEl.checked = settings.animRotation;
+    applyAnimVisibility();
+  }
+  if (settings.rotationSpeed !== undefined) {
+    rotationSpeedEl.value = settings.rotationSpeed;
+    rotationSpeedVal.textContent = settings.rotationSpeed;
+  }
 }
 
 loadSettings();
+
+function applyAnimVisibility() {
+  scaleAmountField.classList.toggle('visible', animScaleEl.checked);
+  rotationSpeedField.classList.toggle('visible', animRotationEl.checked);
+}
+
+applyAnimVisibility();
+
+animScaleEl.addEventListener('change', () => { applyAnimVisibility(); saveSettings(); });
+animRotationEl.addEventListener('change', () => { applyAnimVisibility(); saveSettings(); });
+scaleAmountEl.addEventListener('input', () => { scaleAmountVal.textContent = scaleAmountEl.value + '%'; saveSettings(); });
+rotationSpeedEl.addEventListener('input', () => { rotationSpeedVal.textContent = rotationSpeedEl.value; saveSettings(); });
 
 function applyBgTransparent() {
   const isTransparent = bgTransparentEl.checked;
@@ -172,8 +213,14 @@ fontFamSel.addEventListener('change',  () => { saveSettings(); });
 fontSizeEl.disabled = fontAutoEl.checked;
 
 const BASE_SIZE = 128;
+const ANIMATION_TOTAL_FRAMES = 12;
+const ANIMATION_FRAME_DELAYS = { 1: 150, 2: 120, 3: 80, 4: 60, 5: 40 };
 
-function drawEmoji(size, fontSize) {
+function drawEmoji(size, fontSize, opts) {
+  opts = opts || {};
+  const scale = opts.scale !== undefined ? opts.scale : 1;
+  const rotation = opts.rotation || 0; // degrees
+
   const canvas = document.createElement('canvas');
   canvas.width  = size;
   canvas.height = size;
@@ -183,6 +230,13 @@ function drawEmoji(size, fontSize) {
   if (!bgTransparentEl.checked) {
     ctx.fillRect(0, 0, size, size);
   }
+
+  // Apply animation transforms around centre
+  ctx.save();
+  ctx.translate(size / 2, size / 2);
+  if (rotation) ctx.rotate(rotation * Math.PI / 180);
+  if (scale !== 1) ctx.scale(scale, scale);
+  ctx.translate(-size / 2, -size / 2);
 
   const scaledFontSize = Math.round(fontSize * (size / BASE_SIZE));
   ctx.font = `bold ${scaledFontSize}px ${fontFamSel.value}`;
@@ -195,6 +249,7 @@ function drawEmoji(size, fontSize) {
     drawHorizontalText(ctx, size, scaledFontSize);
   }
 
+  ctx.restore();
   return canvas;
 }
 
@@ -371,6 +426,30 @@ function calculateAutoFontSize(text, fontFamily, canvasSize, borderSize, lineBre
   return lo;
 }
 
+function isAnimationEnabled() {
+  return animScaleEl.checked || animRotationEl.checked;
+}
+
+function buildGif(size, fontSize) {
+  var speedIndex = parseInt(rotationSpeedEl.value, 10);
+  var delay = ANIMATION_FRAME_DELAYS[speedIndex] || 80;
+  var scaleAmount = parseInt(scaleAmountEl.value, 10) / 100;
+
+  var encoder = new GifEncoder(size, size);
+  for (var f = 0; f < ANIMATION_TOTAL_FRAMES; f++) {
+    var t = f / ANIMATION_TOTAL_FRAMES;
+    var opts = {};
+    if (animScaleEl.checked) {
+      opts.scale = 1 + scaleAmount * Math.sin(2 * Math.PI * t);
+    }
+    if (animRotationEl.checked) {
+      opts.rotation = 360 * t;
+    }
+    encoder.addFrame(drawEmoji(size, fontSize, opts), { delay: delay });
+  }
+  return encoder;
+}
+
 generateBtn.addEventListener('click', () => {
   if (!textInput.value.trim()) {
     textInput.focus();
@@ -392,6 +471,8 @@ generateBtn.addEventListener('click', () => {
   canvasWrapDark.innerHTML = '';
   canvasWrapLight.innerHTML = '';
 
+  const animated = isAnimationEnabled();
+
   const sizes = [
     { size: BASE_SIZE, label: '128×128' },
     { size: 64,        label: '64×64'   },
@@ -400,26 +481,55 @@ generateBtn.addEventListener('click', () => {
 
   [canvasWrapDark, canvasWrapLight].forEach(wrap => {
     sizes.forEach(({ size, label }) => {
-      const canvas = drawEmoji(size, fontSize);
-      canvas.title = label;
+      if (animated) {
+        const gif = buildGif(size, fontSize);
+        const img = document.createElement('img');
+        img.src = gif.toDataURL();
+        img.title = label;
+        img.width = size;
+        img.height = size;
 
-      const box = document.createElement('div');
-      box.className = 'size-box';
+        const box = document.createElement('div');
+        box.className = 'size-box';
 
-      const tag = document.createElement('span');
-      tag.className = 'size-tag';
-      tag.textContent = label;
+        const tag = document.createElement('span');
+        tag.className = 'size-tag';
+        tag.textContent = label;
 
-      box.appendChild(canvas);
-      box.appendChild(tag);
-      wrap.appendChild(box);
+        box.appendChild(img);
+        box.appendChild(tag);
+        wrap.appendChild(box);
+      } else {
+        const canvas = drawEmoji(size, fontSize);
+        canvas.title = label;
+
+        const box = document.createElement('div');
+        box.className = 'size-box';
+
+        const tag = document.createElement('span');
+        tag.className = 'size-tag';
+        tag.textContent = label;
+
+        box.appendChild(canvas);
+        box.appendChild(tag);
+        wrap.appendChild(box);
+      }
     });
   });
 
-  const mainCanvas = drawEmoji(BASE_SIZE, fontSize);
-  downloadLink.href = mainCanvas.toDataURL('image/png');
   const safeName = textInput.value.trim().replace(/[/\\:*?"<>|]/g, '_') || 'emoji';
-  downloadLink.download = safeName + '.png';
+
+  if (animated) {
+    const mainGif = buildGif(BASE_SIZE, fontSize);
+    downloadLink.href = mainGif.toDataURL();
+    downloadLink.download = safeName + '.gif';
+    downloadBtn.textContent = 'Download GIF (128×128)';
+  } else {
+    const mainCanvas = drawEmoji(BASE_SIZE, fontSize);
+    downloadLink.href = mainCanvas.toDataURL('image/png');
+    downloadLink.download = safeName + '.png';
+    downloadBtn.textContent = 'Download PNG (128×128)';
+  }
 
   downloadBtn.disabled = false;
 });
