@@ -47,13 +47,29 @@ function drawEmoji(size, fontSize) {
   const scaledFontSize = Math.round(fontSize * (size / BASE_SIZE));
   ctx.font = `bold ${scaledFontSize}px ${fontFamSel.value}`;
   ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textBaseline = 'alphabetic';
 
   const text = textInput.value.trim() || ' ';
   const lines = wrapText(ctx, text, size);
   const lineHeight = scaledFontSize * 1.2;
   const totalHeight = lines.length * lineHeight;
-  const startY = (size - totalHeight) / 2 + lineHeight / 2;
+
+  // Use font metrics so the visual centre of the text block lands at the canvas
+  // centre.  textBaseline='middle' positions y at the em-box centre, which sits
+  // above the visual centre of most glyphs; switching to 'alphabetic' and
+  // computing the baseline from fontBoundingBoxAscent/Descent corrects this.
+  //
+  // Measure against a string that covers typical cap-height and descender
+  // extent so the metrics are stable regardless of the actual text content.
+  const FALLBACK_ASCENT_RATIO  = 0.8; // typical ratio of ascent  to font size
+  const FALLBACK_DESCENT_RATIO = 0.2; // typical ratio of descent to font size
+  const metrics = ctx.measureText('Aq');
+  const ascent  = metrics.fontBoundingBoxAscent  ?? scaledFontSize * FALLBACK_ASCENT_RATIO;
+  const descent = metrics.fontBoundingBoxDescent ?? scaledFontSize * FALLBACK_DESCENT_RATIO;
+  // The visual centre of the font box is (ascent - descent) / 2 above the
+  // alphabetic baseline.  startY is the baseline of the first line positioned
+  // so the entire block is vertically centred.
+  const startY = (size - totalHeight) / 2 + lineHeight / 2 + (ascent - descent) / 2;
 
   const borderSize = parseInt(borderSizeEl.value, 10);
   if (borderSize > 0) {
