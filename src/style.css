@@ -108,6 +108,10 @@ select {
   padding: 6px 10px;
 }
 
+.color-input-wrap + .auto-label {
+  margin-top: 6px;
+}
+
 input[type="color"] {
   width: 28px;
   height: 28px;

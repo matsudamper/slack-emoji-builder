@@ -12,6 +12,8 @@ const borderSizeEl     = document.getElementById('border-size');
 const borderSizeVal    = document.getElementById('border-size-value');
 const borderColorEl    = document.getElementById('border-color');
 const borderHexEl      = document.getElementById('border-color-hex');
+const bgTransparentEl  = document.getElementById('bg-transparent');
+const bgColorWrap      = document.getElementById('bg-color-wrap');
 const generateBtn      = document.getElementById('generate-btn');
 const previewSec       = document.getElementById('preview-section');
 const canvasWrap       = document.getElementById('canvas-wrap');
@@ -46,15 +48,16 @@ directionBtns.forEach(btn => {
 
 function saveSettings() {
   const settings = {
-    fontSize:    fontSizeEl.value,
-    fontAuto:    fontAutoEl.checked,
-    lineBreak:   lineBreakEl.checked,
-    fontFamily:  fontFamSel.value,
-    textColor:   textColorEl.value,
-    bgColor:     bgColorEl.value,
-    borderSize:  borderSizeEl.value,
-    borderColor: borderColorEl.value,
-    direction:   currentDirection,
+    fontSize:      fontSizeEl.value,
+    fontAuto:      fontAutoEl.checked,
+    lineBreak:     lineBreakEl.checked,
+    fontFamily:    fontFamSel.value,
+    textColor:     textColorEl.value,
+    bgColor:       bgColorEl.value,
+    bgTransparent: bgTransparentEl.checked,
+    borderSize:    borderSizeEl.value,
+    borderColor:   borderColorEl.value,
+    direction:     currentDirection,
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -91,6 +94,10 @@ function loadSettings() {
     bgColorEl.value = settings.bgColor;
     bgHexEl.value = settings.bgColor;
   }
+  if (settings.bgTransparent !== undefined) {
+    bgTransparentEl.checked = settings.bgTransparent;
+    applyBgTransparent();
+  }
   if (settings.borderSize !== undefined) {
     borderSizeEl.value = settings.borderSize;
     borderSizeVal.textContent = settings.borderSize;
@@ -105,6 +112,18 @@ function loadSettings() {
 }
 
 loadSettings();
+
+function applyBgTransparent() {
+  const isTransparent = bgTransparentEl.checked;
+  bgColorEl.disabled  = isTransparent;
+  bgHexEl.disabled    = isTransparent;
+  bgColorWrap.style.opacity = isTransparent ? '0.4' : '1';
+}
+
+// Initialize transparent state (default is checked in HTML)
+applyBgTransparent();
+
+bgTransparentEl.addEventListener('change', () => { applyBgTransparent(); saveSettings(); });
 
 textColorEl.addEventListener('input', () => { textHexEl.value = textColorEl.value; saveSettings(); });
 bgColorEl.addEventListener('input',   () => { bgHexEl.value   = bgColorEl.value;   saveSettings(); });
@@ -160,7 +179,9 @@ function drawEmoji(size, fontSize) {
   const ctx = canvas.getContext('2d');
 
   ctx.fillStyle = bgColorEl.value;
-  ctx.fillRect(0, 0, size, size);
+  if (!bgTransparentEl.checked) {
+    ctx.fillRect(0, 0, size, size);
+  }
 
   const scaledFontSize = Math.round(fontSize * (size / BASE_SIZE));
   ctx.font = `bold ${scaledFontSize}px ${fontFamSel.value}`;
