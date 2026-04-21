@@ -18,18 +18,83 @@ const canvasWrap     = document.getElementById('canvas-wrap');
 const downloadLink   = document.getElementById('download-link');
 const downloadBtn    = document.getElementById('download-btn');
 
-textColorEl.addEventListener('input', () => { textHexEl.textContent = textColorEl.value; });
-bgColorEl.addEventListener('input',   () => { bgHexEl.textContent   = bgColorEl.value;   });
-borderColorEl.addEventListener('input', () => { borderHexEl.textContent = borderColorEl.value; });
-borderSizeEl.addEventListener('input', () => { borderSizeVal.textContent = borderSizeEl.value; });
+const STORAGE_KEY = 'slackEmojiBuilderSettings';
+
+function saveSettings() {
+  const settings = {
+    fontSize:    fontSizeEl.value,
+    fontAuto:    fontAutoEl.checked,
+    lineBreak:   lineBreakEl.checked,
+    fontFamily:  fontFamSel.value,
+    textColor:   textColorEl.value,
+    bgColor:     bgColorEl.value,
+    borderSize:  borderSizeEl.value,
+    borderColor: borderColorEl.value,
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  } catch (_) { /* ignore storage errors */ }
+}
+
+function loadSettings() {
+  let settings;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    settings = JSON.parse(raw);
+  } catch (_) { return; }
+
+  if (settings.fontSize !== undefined) {
+    fontSizeEl.value = settings.fontSize;
+    fontSizeVal.textContent = settings.fontSize;
+  }
+  if (settings.fontAuto !== undefined) {
+    fontAutoEl.checked = settings.fontAuto;
+    fontSizeEl.disabled = settings.fontAuto;
+  }
+  if (settings.lineBreak !== undefined) {
+    lineBreakEl.checked = settings.lineBreak;
+  }
+  if (settings.fontFamily !== undefined) {
+    fontFamSel.value = settings.fontFamily;
+  }
+  if (settings.textColor !== undefined) {
+    textColorEl.value = settings.textColor;
+    textHexEl.textContent = settings.textColor;
+  }
+  if (settings.bgColor !== undefined) {
+    bgColorEl.value = settings.bgColor;
+    bgHexEl.textContent = settings.bgColor;
+  }
+  if (settings.borderSize !== undefined) {
+    borderSizeEl.value = settings.borderSize;
+    borderSizeVal.textContent = settings.borderSize;
+  }
+  if (settings.borderColor !== undefined) {
+    borderColorEl.value = settings.borderColor;
+    borderHexEl.textContent = settings.borderColor;
+  }
+}
+
+loadSettings();
+
+textColorEl.addEventListener('input', () => { textHexEl.textContent = textColorEl.value; saveSettings(); });
+bgColorEl.addEventListener('input',   () => { bgHexEl.textContent   = bgColorEl.value;   saveSettings(); });
+borderColorEl.addEventListener('input', () => { borderHexEl.textContent = borderColorEl.value; saveSettings(); });
+borderSizeEl.addEventListener('input', () => { borderSizeVal.textContent = borderSizeEl.value; saveSettings(); });
 
 fontSizeEl.addEventListener('input', () => {
   fontSizeVal.textContent = fontSizeEl.value;
+  saveSettings();
 });
 
 fontAutoEl.addEventListener('change', () => {
   fontSizeEl.disabled = fontAutoEl.checked;
+  saveSettings();
 });
+
+lineBreakEl.addEventListener('change', () => { saveSettings(); });
+fontFamSel.addEventListener('change',  () => { saveSettings(); });
 
 // Initialize slider state
 fontSizeEl.disabled = fontAutoEl.checked;
