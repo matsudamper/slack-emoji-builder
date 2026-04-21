@@ -94,9 +94,18 @@
         <div class="field"></div>
       </div>
 
-      <div class="field">
-        <label>Animation</label>
-        <div class="anim-container" id="anim-container"></div>
+      <div class="field animation-field">
+        <div class="animation-header">
+          <button type="button" class="animation-toggle" id="animation-toggle" aria-expanded="true" aria-controls="animation-body">
+            <span class="animation-chevron" id="animation-chevron" aria-hidden="true"></span>
+            <span class="animation-title">ANIMATION</span>
+            <span class="animation-count" id="animation-count">0</span>
+          </button>
+          <button type="button" class="animation-clear-btn" id="animation-clear-btn">全てクリア</button>
+        </div>
+        <div class="animation-body" id="animation-body">
+          <div class="anim-container" id="anim-container"></div>
+        </div>
       </div>
 
       <button id="generate-btn">Generate Image</button>

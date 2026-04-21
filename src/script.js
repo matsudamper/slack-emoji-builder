@@ -23,6 +23,10 @@ const downloadBtn      = document.getElementById('download-btn');
 const directionToggle  = document.getElementById('direction-toggle');
 const directionIndicator = document.getElementById('direction-indicator');
 const directionBtns    = directionToggle.querySelectorAll('.direction-btn');
+const animationToggle  = document.getElementById('animation-toggle');
+const animationBody    = document.getElementById('animation-body');
+const animationCount   = document.getElementById('animation-count');
+const animationClearBtn = document.getElementById('animation-clear-btn');
 const animContainer    = document.getElementById('anim-container');
 
 const ANIMATION_DEFS = [
@@ -52,6 +56,7 @@ const STORAGE_KEY = 'slackEmojiBuilderSettings';
 
 let currentDirection = 'horizontal';
 let animationControls = {};
+let animationExpanded = true;
 
 function getDirection() {
   return currentDirection;
@@ -168,6 +173,36 @@ function setSliderValue(slider, value) {
 
 animationControls = buildAnimationControls();
 
+function getEnabledAnimationCount() {
+  return Object.values(animationControls).filter(control => control.checkbox.checked).length;
+}
+
+function updateAnimationCount() {
+  const count = getEnabledAnimationCount();
+  animationCount.textContent = String(count);
+  animationClearBtn.disabled = count === 0;
+}
+
+function setAnimationExpanded(expanded) {
+  animationExpanded = expanded;
+  animationToggle.classList.toggle('collapsed', !expanded);
+  animationToggle.setAttribute('aria-expanded', String(expanded));
+  animationBody.classList.toggle('collapsed', !expanded);
+}
+
+animationToggle.addEventListener('click', () => {
+  setAnimationExpanded(!animationExpanded);
+  saveSettings();
+});
+
+animationClearBtn.addEventListener('click', () => {
+  Object.values(animationControls).forEach(control => {
+    control.checkbox.checked = false;
+  });
+  applyAnimVisibility();
+  saveSettings();
+});
+
 function getAnimationSettings() {
   const animations = {};
   Object.entries(animationControls).forEach(([key, control]) => {
@@ -194,6 +229,7 @@ function saveSettings() {
     borderSize:    borderSizeEl.value,
     borderColor:   borderColorEl.value,
     direction:     currentDirection,
+    animationExpanded: animationExpanded,
     animations:    animations,
     animScale:     animations.scale.enabled,
     scaleAmount:   animations.scale.amount,
@@ -286,6 +322,9 @@ function loadSettings() {
   if (settings.direction !== undefined) {
     setDirection(settings.direction);
   }
+  if (settings.animationExpanded !== undefined) {
+    setAnimationExpanded(settings.animationExpanded);
+  }
   applyStoredAnimationSettings(settings);
 }
 
@@ -297,8 +336,10 @@ function applyAnimVisibility() {
     control.sub.classList.toggle('visible', visible);
     control.sub.setAttribute('aria-hidden', String(!visible));
   });
+  updateAnimationCount();
 }
 
+setAnimationExpanded(animationExpanded);
 applyAnimVisibility();
 
 function applyBgTransparent() {

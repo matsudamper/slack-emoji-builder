@@ -371,6 +371,90 @@ button:active {
   margin-bottom: 0;
 }
 
+.animation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.animation-toggle,
+.animation-clear-btn {
+  width: auto;
+  margin-top: 0;
+}
+
+.animation-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  background: none;
+  color: #9b9ca0;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.animation-toggle:hover,
+.animation-toggle:active {
+  background: none;
+}
+
+.animation-chevron {
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid #9b9ca0;
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+
+.animation-toggle.collapsed .animation-chevron {
+  transform: rotate(0deg);
+}
+
+.animation-count {
+  min-width: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #383b40;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.animation-clear-btn {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  background: #383b40;
+  color: #d1d2d3;
+  border: 1px solid #4a4d52;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.animation-clear-btn:hover {
+  background: #45484d;
+}
+
+.animation-clear-btn:active {
+  background: #34373c;
+}
+
+.animation-clear-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.animation-body.collapsed {
+  display: none;
+}
+
 .anim-container {
   display: flex;
   flex-direction: column;
@@ -439,6 +523,14 @@ button:active {
 
   .font-size-control-row .auto-label {
     grid-area: auto;
+  }
+
+  .animation-header {
+    align-items: flex-start;
+  }
+
+  .animation-toggle {
+    min-height: 28px;
   }
 
   .anim-row {
