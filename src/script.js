@@ -16,7 +16,8 @@ const bgTransparentEl  = document.getElementById('bg-transparent');
 const bgColorWrap      = document.getElementById('bg-color-wrap');
 const generateBtn      = document.getElementById('generate-btn');
 const previewSec       = document.getElementById('preview-section');
-const canvasWrap       = document.getElementById('canvas-wrap');
+const canvasWrapDark   = document.getElementById('canvas-wrap-dark');
+const canvasWrapLight  = document.getElementById('canvas-wrap-light');
 const downloadLink     = document.getElementById('download-link');
 const downloadBtn      = document.getElementById('download-btn');
 const directionToggle  = document.getElementById('direction-toggle');
@@ -388,7 +389,8 @@ generateBtn.addEventListener('click', () => {
     fontSize = parseInt(fontSizeEl.value, 10);
   }
 
-  canvasWrap.innerHTML = '';
+  canvasWrapDark.innerHTML = '';
+  canvasWrapLight.innerHTML = '';
 
   const sizes = [
     { size: BASE_SIZE, label: '128×128' },
@@ -396,20 +398,22 @@ generateBtn.addEventListener('click', () => {
     { size: 32,        label: '32×32'   },
   ];
 
-  sizes.forEach(({ size, label }) => {
-    const canvas = drawEmoji(size, fontSize);
-    canvas.title = label;
+  [canvasWrapDark, canvasWrapLight].forEach(wrap => {
+    sizes.forEach(({ size, label }) => {
+      const canvas = drawEmoji(size, fontSize);
+      canvas.title = label;
 
-    const box = document.createElement('div');
-    box.className = 'size-box';
+      const box = document.createElement('div');
+      box.className = 'size-box';
 
-    const tag = document.createElement('span');
-    tag.className = 'size-tag';
-    tag.textContent = label;
+      const tag = document.createElement('span');
+      tag.className = 'size-tag';
+      tag.textContent = label;
 
-    box.appendChild(canvas);
-    box.appendChild(tag);
-    canvasWrap.appendChild(box);
+      box.appendChild(canvas);
+      box.appendChild(tag);
+      wrap.appendChild(box);
+    });
   });
 
   const mainCanvas = drawEmoji(BASE_SIZE, fontSize);
