@@ -109,29 +109,32 @@ function wrapText(ctx, text, maxWidth) {
   return lines.length ? lines : [' '];
 }
 
-function calculateAutoFontSize(text, fontFamily, canvasSize) {
+function calculateAutoFontSize(text, fontFamily, canvasSize, borderSize) {
   const canvas = document.createElement('canvas');
   canvas.width = canvasSize;
   canvas.height = canvasSize;
   const ctx = canvas.getContext('2d');
 
+  // Reserve space for the border on both sides so it does not overflow.
+  const available = canvasSize - borderSize * 2;
+
   let lo = 1, hi = canvasSize;
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2);
     ctx.font = `bold ${mid}px ${fontFamily}`;
-    const lines = wrapText(ctx, text, canvasSize);
+    const lines = wrapText(ctx, text, available);
     const lineHeight = mid * 1.2;
     const totalHeight = lines.length * lineHeight;
 
     let allLinesFit = true;
     for (const line of lines) {
-      if (ctx.measureText(line).width > canvasSize) {
+      if (ctx.measureText(line).width > available) {
         allLinesFit = false;
         break;
       }
     }
 
-    if (totalHeight <= canvasSize && allLinesFit) {
+    if (totalHeight <= available && allLinesFit) {
       lo = mid;
     } else {
       hi = mid - 1;
@@ -150,7 +153,8 @@ generateBtn.addEventListener('click', () => {
   let fontSize;
 
   if (fontAutoEl.checked) {
-    fontSize = calculateAutoFontSize(text, fontFamSel.value, BASE_SIZE);
+    const borderSize = parseInt(borderSizeEl.value, 10);
+    fontSize = calculateAutoFontSize(text, fontFamSel.value, BASE_SIZE, borderSize);
     fontSizeEl.value = fontSize;
     fontSizeVal.textContent = fontSize;
   } else {
