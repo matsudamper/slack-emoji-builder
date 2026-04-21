@@ -1,20 +1,26 @@
-const textInput    = document.getElementById('text-input');
-const fontSizeEl   = document.getElementById('font-size');
-const fontSizeVal  = document.getElementById('font-size-value');
-const fontAutoEl   = document.getElementById('font-size-auto');
-const fontFamSel   = document.getElementById('font-family');
-const textColorEl  = document.getElementById('text-color');
-const bgColorEl    = document.getElementById('bg-color');
-const textHexEl    = document.getElementById('text-color-hex');
-const bgHexEl      = document.getElementById('bg-color-hex');
-const generateBtn  = document.getElementById('generate-btn');
-const previewSec   = document.getElementById('preview-section');
-const canvasWrap   = document.getElementById('canvas-wrap');
-const downloadLink = document.getElementById('download-link');
-const downloadBtn  = document.getElementById('download-btn');
+const textInput      = document.getElementById('text-input');
+const fontSizeEl     = document.getElementById('font-size');
+const fontSizeVal    = document.getElementById('font-size-value');
+const fontAutoEl     = document.getElementById('font-size-auto');
+const fontFamSel     = document.getElementById('font-family');
+const textColorEl    = document.getElementById('text-color');
+const bgColorEl      = document.getElementById('bg-color');
+const textHexEl      = document.getElementById('text-color-hex');
+const bgHexEl        = document.getElementById('bg-color-hex');
+const borderSizeEl   = document.getElementById('border-size');
+const borderSizeVal  = document.getElementById('border-size-value');
+const borderColorEl  = document.getElementById('border-color');
+const borderHexEl    = document.getElementById('border-color-hex');
+const generateBtn    = document.getElementById('generate-btn');
+const previewSec     = document.getElementById('preview-section');
+const canvasWrap     = document.getElementById('canvas-wrap');
+const downloadLink   = document.getElementById('download-link');
+const downloadBtn    = document.getElementById('download-btn');
 
 textColorEl.addEventListener('input', () => { textHexEl.textContent = textColorEl.value; });
 bgColorEl.addEventListener('input',   () => { bgHexEl.textContent   = bgColorEl.value;   });
+borderColorEl.addEventListener('input', () => { borderHexEl.textContent = borderColorEl.value; });
+borderSizeEl.addEventListener('input', () => { borderSizeVal.textContent = borderSizeEl.value; });
 
 fontSizeEl.addEventListener('input', () => {
   fontSizeVal.textContent = fontSizeEl.value;
@@ -40,7 +46,6 @@ function drawEmoji(size, fontSize) {
 
   const scaledFontSize = Math.round(fontSize * (size / BASE_SIZE));
   ctx.font = `bold ${scaledFontSize}px ${fontFamSel.value}`;
-  ctx.fillStyle    = textColorEl.value;
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
 
@@ -50,6 +55,19 @@ function drawEmoji(size, fontSize) {
   const totalHeight = lines.length * lineHeight;
   const startY = (size - totalHeight) / 2 + lineHeight / 2;
 
+  const borderSize = parseInt(borderSizeEl.value, 10);
+  if (borderSize > 0) {
+    const scaledBorder = Math.round(borderSize * (size / BASE_SIZE));
+    ctx.strokeStyle = borderColorEl.value;
+    ctx.lineWidth   = scaledBorder * 2;
+    ctx.lineJoin    = 'round';
+    ctx.miterLimit  = 2;
+    lines.forEach((line, i) => {
+      ctx.strokeText(line, size / 2, startY + i * lineHeight);
+    });
+  }
+
+  ctx.fillStyle = textColorEl.value;
   lines.forEach((line, i) => {
     ctx.fillText(line, size / 2, startY + i * lineHeight);
   });
