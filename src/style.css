@@ -390,10 +390,12 @@ button:active {
 
 .anim-sub {
   visibility: hidden;
+  pointer-events: none;
 }
 
 .anim-sub.visible {
   visibility: visible;
+  pointer-events: auto;
 }
 
 .size-box img {
