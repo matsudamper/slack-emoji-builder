@@ -123,6 +123,220 @@
     };
   }
 
+  const EFFECTS = {
+    scale({ phase, opts, getControlValue }) {
+      const amount = getControlValue('scale', 'amount', 30) / 100;
+      const scale = 1 + amount * Math.sin(2 * Math.PI * phase);
+      multiplyScale(opts, scale, scale);
+    },
+
+    rotation({ phase, opts }) {
+      addRotation(opts, 360 * phase);
+    },
+
+    shake({ phase, opts }) {
+      addTranslate(opts, Math.sin(2 * Math.PI * phase) * 8, Math.sin(2 * Math.PI * phase * 2) * 1.5);
+      addRotation(opts, Math.sin(2 * Math.PI * phase * 2) * 3);
+    },
+
+    bounce({ phase, opts }) {
+      const jump = Math.sin(Math.PI * phase);
+      const landing = Math.pow(Math.max(0, Math.cos(2 * Math.PI * phase)), 8);
+      addTranslate(opts, 0, -24 * jump + 5 * landing);
+      multiplyScale(opts, 1 + 0.16 * landing, 1 - 0.13 * landing);
+    },
+
+    heartbeat({ phase, opts }) {
+      const beat = pulse(phase, 0.16, 0.055) + pulse(phase, 0.34, 0.075) * 0.75;
+      const scale = 1 + 0.28 * beat;
+      multiplyScale(opts, scale, scale);
+    },
+
+    sway({ phase, opts }) {
+      addRotation(opts, Math.sin(2 * Math.PI * phase) * 12);
+    },
+
+    dodge({ phase, opts }) {
+      addTranslate(opts, Math.sin(2 * Math.PI * phase) * 28, 0);
+    },
+
+    spinBack({ phase, opts }) {
+      const rotation = phase < 0.68
+        ? 360 * easeOutCubic(phase / 0.68)
+        : 360 * (1 - easeInOutCubic((phase - 0.68) / 0.32));
+      addRotation(opts, rotation);
+    },
+
+    pop({ phase, opts }) {
+      const scale = 1 + 0.58 * pulse(phase, 0.14, 0.08) - 0.12 * pulse(phase, 0.36, 0.11);
+      multiplyScale(opts, scale, scale);
+    },
+
+    jitter({ frame, opts, getSpeed }) {
+      const bucket = Math.floor((frame + 1) * getSpeed('jitter') * 1.7);
+      addTranslate(opts, (hash01(bucket) - 0.5) * 14, (hash01(bucket + 9) - 0.5) * 10);
+      addRotation(opts, (hash01(bucket + 17) - 0.5) * 14);
+    },
+
+    glitch({ frame, opts, getSpeed }) {
+      const bucket = Math.floor((frame + 1) * getSpeed('glitch') * 1.25);
+      opts.glitch = true;
+      opts.glitchSeed = bucket;
+      opts.glitchAmount = 0.8 + hash01(bucket + 3) * 0.8;
+      if (hash01(bucket + 7) > 0.55) {
+        addTranslate(opts, (hash01(bucket + 13) - 0.5) * 8, 0);
+      }
+    },
+
+    slot({ phase, frame, opts, baseText }) {
+      opts.text = buildSlotText(baseText, phase, frame);
+    },
+
+    blink({ phase, opts }) {
+      opts.textColor = phase < 0.5 ? '#ffd900' : '#ff2f3f';
+      opts.borderColor = phase < 0.5 ? '#3d2500' : '#ffffff';
+      opts.bgColor = phase < 0.5 ? '#1f1f1f' : '#ffcc00';
+    },
+
+    rainbow({ phase, opts }) {
+      opts.textColor = `hsl(${Math.round(phase * 360)}, 100%, 62%)`;
+    },
+
+    typing({ phase, opts, baseText }) {
+      opts.text = buildTypingText(baseText, phase);
+    },
+
+    squash({ phase, opts }) {
+      const squash = pulse(phase, 0.18, 0.16);
+      multiplyScale(opts, 1 + 0.28 * squash, 1 - 0.42 * squash);
+      addTranslate(opts, 0, 10 * squash);
+    },
+
+    warp({ phase, opts }) {
+      if (phase < 0.42) {
+        const t = easeInOutCubic(phase / 0.42);
+        addTranslate(opts, -78 * t, 0);
+        multiplyScale(opts, 1 - 0.68 * t, 1 - 0.68 * t);
+        multiplyAlpha(opts, 1 - 0.7 * t);
+      } else if (phase < 0.54) {
+        multiplyScale(opts, 0.2, 0.2);
+        multiplyAlpha(opts, 0);
+      } else {
+        const t = easeOutCubic((phase - 0.54) / 0.46);
+        addTranslate(opts, 78 * (1 - t), 0);
+        multiplyScale(opts, 0.32 + 0.68 * t, 0.32 + 0.68 * t);
+        multiplyAlpha(opts, Math.min(1, t + 0.2));
+      }
+    },
+
+    zoom({ phase, opts }) {
+      const t = phase < 0.78 ? easeOutBack(phase / 0.78) : 1;
+      const scale = 0.18 + 0.82 * t;
+      multiplyScale(opts, scale, scale);
+      multiplyAlpha(opts, Math.min(1, phase * 5));
+    },
+  };
+
+  class AnimationEngine {
+    constructor({ controls, baseSize }) {
+      this.controls = controls;
+      this.baseSize = baseSize || DEFAULT_BASE_SIZE;
+      this.measurePadding = this.baseSize * 2;
+    }
+
+    isEnabled() {
+      return Object.values(this.controls).some(control => control.checkbox.checked);
+    }
+
+    getSpeed(key) {
+      const slider = this.controls[key]?.sliders.speed;
+      const speed = slider ? parseInt(slider.input.value, 10) : 1;
+      return Number.isFinite(speed) ? speed : 1;
+    }
+
+    getControlValue(key, controlKey, fallback) {
+      const slider = this.controls[key]?.sliders[controlKey];
+      const value = slider ? parseFloat(slider.input.value) : fallback;
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    getPhase(frame, speed) {
+      return ((frame / ANIMATION_TOTAL_FRAMES) * speed) % 1;
+    }
+
+    applyEffect(key, phase, frame, opts, baseText) {
+      const effect = EFFECTS[key];
+      if (!effect) return;
+
+      effect({
+        key,
+        phase,
+        frame,
+        opts,
+        baseText,
+        getSpeed: effectKey => this.getSpeed(effectKey),
+        getControlValue: (effectKey, controlKey, fallback) => {
+          return this.getControlValue(effectKey, controlKey, fallback);
+        },
+      });
+    }
+
+    buildFrameOptions(frame, baseText, animationLayout) {
+      const text = baseText || ' ';
+      const opts = { text };
+
+      ANIMATION_DEFS.forEach(def => {
+        const control = this.controls[def.key];
+        if (!control?.checkbox.checked) return;
+
+        const speed = this.getSpeed(def.key);
+        this.applyEffect(def.key, this.getPhase(frame, speed), frame, opts, text);
+      });
+
+      if (animationLayout?.offsetY) {
+        addTranslate(opts, 0, animationLayout.offsetY);
+      }
+
+      return opts;
+    }
+
+    buildLayout(fontSize, drawEmoji, baseText) {
+      let top = Infinity;
+      let bottom = -Infinity;
+
+      for (let frame = 0; frame < ANIMATION_TOTAL_FRAMES; frame++) {
+        const frameCanvas = drawEmoji(this.baseSize, fontSize, {
+          ...this.buildFrameOptions(frame, baseText),
+          skipBackground: true,
+          outputPadding: this.measurePadding,
+        });
+        const bounds = measureCanvasAlphaBounds(frameCanvas, this.measurePadding);
+        if (!bounds) continue;
+
+        top = Math.min(top, bounds.top);
+        bottom = Math.max(bottom, bounds.bottom);
+      }
+
+      if (!Number.isFinite(top) || !Number.isFinite(bottom)) {
+        return { offsetY: 0 };
+      }
+
+      const animationCenterY = (top + bottom + 1) / 2;
+      return { offsetY: this.baseSize / 2 - animationCenterY };
+    }
+
+    buildGif(size, fontSize, animationLayout, drawEmoji, baseText) {
+      var encoder = new GifEncoder(size, size);
+      for (var frame = 0; frame < ANIMATION_TOTAL_FRAMES; frame++) {
+        encoder.addFrame(
+          drawEmoji(size, fontSize, this.buildFrameOptions(frame, baseText, animationLayout)),
+          { delay: ANIMATION_FRAME_DELAY },
+        );
+      }
+      return encoder;
+    }
+  }
+
   class AnimationManager {
     constructor({ toggle, body, count, clearButton, container, onChange, baseSize }) {
       this.toggle = toggle;
@@ -132,9 +346,12 @@
       this.container = container;
       this.onChange = onChange || function () {};
       this.baseSize = baseSize || DEFAULT_BASE_SIZE;
-      this.measurePadding = this.baseSize * 2;
       this.expanded = true;
       this.controls = this.buildControls();
+      this.engine = new AnimationEngine({
+        controls: this.controls,
+        baseSize: this.baseSize,
+      });
 
       this.toggle.addEventListener('click', () => {
         this.setExpanded(!this.expanded);
@@ -345,188 +562,15 @@
     }
 
     isEnabled() {
-      return Object.values(this.controls).some(control => control.checkbox.checked);
-    }
-
-    getSpeed(key) {
-      const slider = this.controls[key]?.sliders.speed;
-      const speed = slider ? parseInt(slider.input.value, 10) : 1;
-      return Number.isFinite(speed) ? speed : 1;
-    }
-
-    getControlValue(key, controlKey, fallback) {
-      const slider = this.controls[key]?.sliders[controlKey];
-      const value = slider ? parseFloat(slider.input.value) : fallback;
-      return Number.isFinite(value) ? value : fallback;
-    }
-
-    getPhase(frame, speed) {
-      return ((frame / ANIMATION_TOTAL_FRAMES) * speed) % 1;
-    }
-
-    applyEffect(key, phase, frame, opts, baseText) {
-      switch (key) {
-        case 'scale': {
-          const amount = this.getControlValue('scale', 'amount', 30) / 100;
-          const scale = 1 + amount * Math.sin(2 * Math.PI * phase);
-          multiplyScale(opts, scale, scale);
-          break;
-        }
-        case 'rotation':
-          addRotation(opts, 360 * phase);
-          break;
-        case 'shake':
-          addTranslate(opts, Math.sin(2 * Math.PI * phase) * 8, Math.sin(2 * Math.PI * phase * 2) * 1.5);
-          addRotation(opts, Math.sin(2 * Math.PI * phase * 2) * 3);
-          break;
-        case 'bounce': {
-          const jump = Math.sin(Math.PI * phase);
-          const landing = Math.pow(Math.max(0, Math.cos(2 * Math.PI * phase)), 8);
-          addTranslate(opts, 0, -24 * jump + 5 * landing);
-          multiplyScale(opts, 1 + 0.16 * landing, 1 - 0.13 * landing);
-          break;
-        }
-        case 'heartbeat': {
-          const beat = pulse(phase, 0.16, 0.055) + pulse(phase, 0.34, 0.075) * 0.75;
-          const scale = 1 + 0.28 * beat;
-          multiplyScale(opts, scale, scale);
-          break;
-        }
-        case 'sway':
-          addRotation(opts, Math.sin(2 * Math.PI * phase) * 12);
-          break;
-        case 'dodge':
-          addTranslate(opts, Math.sin(2 * Math.PI * phase) * 28, 0);
-          break;
-        case 'spinBack': {
-          const rotation = phase < 0.68
-            ? 360 * easeOutCubic(phase / 0.68)
-            : 360 * (1 - easeInOutCubic((phase - 0.68) / 0.32));
-          addRotation(opts, rotation);
-          break;
-        }
-        case 'pop': {
-          const scale = 1 + 0.58 * pulse(phase, 0.14, 0.08) - 0.12 * pulse(phase, 0.36, 0.11);
-          multiplyScale(opts, scale, scale);
-          break;
-        }
-        case 'jitter': {
-          const bucket = Math.floor((frame + 1) * this.getSpeed('jitter') * 1.7);
-          addTranslate(opts, (hash01(bucket) - 0.5) * 14, (hash01(bucket + 9) - 0.5) * 10);
-          addRotation(opts, (hash01(bucket + 17) - 0.5) * 14);
-          break;
-        }
-        case 'glitch': {
-          const bucket = Math.floor((frame + 1) * this.getSpeed('glitch') * 1.25);
-          opts.glitch = true;
-          opts.glitchSeed = bucket;
-          opts.glitchAmount = 0.8 + hash01(bucket + 3) * 0.8;
-          if (hash01(bucket + 7) > 0.55) {
-            addTranslate(opts, (hash01(bucket + 13) - 0.5) * 8, 0);
-          }
-          break;
-        }
-        case 'slot':
-          opts.text = buildSlotText(baseText, phase, frame);
-          break;
-        case 'blink':
-          opts.textColor = phase < 0.5 ? '#ffd900' : '#ff2f3f';
-          opts.borderColor = phase < 0.5 ? '#3d2500' : '#ffffff';
-          opts.bgColor = phase < 0.5 ? '#1f1f1f' : '#ffcc00';
-          break;
-        case 'rainbow':
-          opts.textColor = `hsl(${Math.round(phase * 360)}, 100%, 62%)`;
-          break;
-        case 'typing':
-          opts.text = buildTypingText(baseText, phase);
-          break;
-        case 'squash': {
-          const squash = pulse(phase, 0.18, 0.16);
-          multiplyScale(opts, 1 + 0.28 * squash, 1 - 0.42 * squash);
-          addTranslate(opts, 0, 10 * squash);
-          break;
-        }
-        case 'warp':
-          if (phase < 0.42) {
-            const t = easeInOutCubic(phase / 0.42);
-            addTranslate(opts, -78 * t, 0);
-            multiplyScale(opts, 1 - 0.68 * t, 1 - 0.68 * t);
-            multiplyAlpha(opts, 1 - 0.7 * t);
-          } else if (phase < 0.54) {
-            multiplyScale(opts, 0.2, 0.2);
-            multiplyAlpha(opts, 0);
-          } else {
-            const t = easeOutCubic((phase - 0.54) / 0.46);
-            addTranslate(opts, 78 * (1 - t), 0);
-            multiplyScale(opts, 0.32 + 0.68 * t, 0.32 + 0.68 * t);
-            multiplyAlpha(opts, Math.min(1, t + 0.2));
-          }
-          break;
-        case 'zoom': {
-          const t = phase < 0.78 ? easeOutBack(phase / 0.78) : 1;
-          const scale = 0.18 + 0.82 * t;
-          multiplyScale(opts, scale, scale);
-          multiplyAlpha(opts, Math.min(1, phase * 5));
-          break;
-        }
-        default:
-          break;
-      }
-    }
-
-    buildFrameOptions(frame, baseText, animationLayout) {
-      const text = baseText || ' ';
-      const opts = { text };
-
-      ANIMATION_DEFS.forEach(def => {
-        const control = this.controls[def.key];
-        if (!control?.checkbox.checked) return;
-
-        const speed = this.getSpeed(def.key);
-        this.applyEffect(def.key, this.getPhase(frame, speed), frame, opts, text);
-      });
-
-      if (animationLayout?.offsetY) {
-        addTranslate(opts, 0, animationLayout.offsetY);
-      }
-
-      return opts;
+      return this.engine.isEnabled();
     }
 
     buildLayout(fontSize, drawEmoji, baseText) {
-      let top = Infinity;
-      let bottom = -Infinity;
-
-      for (let frame = 0; frame < ANIMATION_TOTAL_FRAMES; frame++) {
-        const frameCanvas = drawEmoji(this.baseSize, fontSize, {
-          ...this.buildFrameOptions(frame, baseText),
-          skipBackground: true,
-          outputPadding: this.measurePadding,
-        });
-        const bounds = measureCanvasAlphaBounds(frameCanvas, this.measurePadding);
-        if (!bounds) continue;
-
-        top = Math.min(top, bounds.top);
-        bottom = Math.max(bottom, bounds.bottom);
-      }
-
-      if (!Number.isFinite(top) || !Number.isFinite(bottom)) {
-        return { offsetY: 0 };
-      }
-
-      const animationCenterY = (top + bottom + 1) / 2;
-      return { offsetY: this.baseSize / 2 - animationCenterY };
+      return this.engine.buildLayout(fontSize, drawEmoji, baseText);
     }
 
     buildGif(size, fontSize, animationLayout, drawEmoji, baseText) {
-      var encoder = new GifEncoder(size, size);
-      for (var frame = 0; frame < ANIMATION_TOTAL_FRAMES; frame++) {
-        encoder.addFrame(
-          drawEmoji(size, fontSize, this.buildFrameOptions(frame, baseText, animationLayout)),
-          { delay: ANIMATION_FRAME_DELAY },
-        );
-      }
-      return encoder;
+      return this.engine.buildGif(size, fontSize, animationLayout, drawEmoji, baseText);
     }
   }
 
