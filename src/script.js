@@ -53,10 +53,47 @@ const ANIMATION_DEFS = [
 ];
 
 const STORAGE_KEY = 'slackEmojiBuilderSettings';
+const DEFAULT_FONT_FAMILY = fontFamSel.options[0]?.value || 'sans-serif';
+const LEGACY_FONT_FAMILY_MAP = {
+  'sans-serif': DEFAULT_FONT_FAMILY,
+  'serif': '"Noto Serif JP", "Yu Mincho", "Hiragino Mincho ProN", serif',
+  'monospace': '"DotGothic16", "Noto Sans JP", monospace',
+  'Impact, sans-serif': '"Dela Gothic One", "Noto Sans JP", sans-serif',
+};
 
 let currentDirection = 'horizontal';
 let animationControls = {};
 let animationExpanded = true;
+
+function isFontFamilyOption(value) {
+  return Array.from(fontFamSel.options).some(option => option.value === value);
+}
+
+function normalizeFontFamily(value) {
+  const mapped = LEGACY_FONT_FAMILY_MAP[value] || value || DEFAULT_FONT_FAMILY;
+  return isFontFamilyOption(mapped) ? mapped : DEFAULT_FONT_FAMILY;
+}
+
+function setFontFamily(value) {
+  fontFamSel.value = normalizeFontFamily(value);
+}
+
+function getSelectedFontFamily() {
+  return fontFamSel.value || DEFAULT_FONT_FAMILY;
+}
+
+async function waitForSelectedFontReady(sampleText) {
+  if (!document.fonts?.load) return;
+  const sample = sampleText || '日本語Aa';
+  const fontFamily = getSelectedFontFamily();
+  try {
+    await Promise.all([
+      document.fonts.load(`400 32px ${fontFamily}`, sample),
+      document.fonts.load(`700 32px ${fontFamily}`, sample),
+      document.fonts.ready,
+    ]);
+  } catch (_) { /* ignore font loading errors */ }
+}
 
 function getDirection() {
   return currentDirection;
@@ -222,7 +259,7 @@ function saveSettings() {
     fontSize:      fontSizeEl.value,
     fontAuto:      fontAutoEl.checked,
     lineBreak:     lineBreakEl.checked,
-    fontFamily:    fontFamSel.value,
+    fontFamily:    getSelectedFontFamily(),
     textColor:     textColorEl.value,
     bgColor:       bgColorEl.value,
     bgTransparent: bgTransparentEl.checked,
@@ -297,7 +334,7 @@ function loadSettings() {
     lineBreakEl.checked = settings.lineBreak;
   }
   if (settings.fontFamily !== undefined) {
-    fontFamSel.value = settings.fontFamily;
+    setFontFamily(settings.fontFamily);
   }
   if (settings.textColor !== undefined) {
     textColorEl.value = settings.textColor;
@@ -468,7 +505,7 @@ function drawEmoji(size, fontSize, opts) {
   ctx.translate(-size / 2, -size / 2);
 
   const scaledFontSize = Math.round(fontSize * (size / BASE_SIZE));
-  ctx.font = `bold ${scaledFontSize}px ${fontFamSel.value}`;
+  ctx.font = `bold ${scaledFontSize}px ${getSelectedFontFamily()}`;
 
   const drawOpts = {
     text: opts.text !== undefined ? opts.text : getBaseText(),
@@ -924,18 +961,20 @@ function buildGif(size, fontSize) {
   return encoder;
 }
 
-generateBtn.addEventListener('click', () => {
+generateBtn.addEventListener('click', async () => {
   if (!textInput.value.trim()) {
     textInput.focus();
     return;
   }
 
   const text = textInput.value.trim();
+  await waitForSelectedFontReady(text);
+
   let fontSize;
 
   if (fontAutoEl.checked) {
     const borderSize = parseInt(borderSizeEl.value, 10);
-    fontSize = calculateAutoFontSize(text, fontFamSel.value, BASE_SIZE, borderSize, lineBreakEl.checked);
+    fontSize = calculateAutoFontSize(text, getSelectedFontFamily(), BASE_SIZE, borderSize, lineBreakEl.checked);
     fontSizeEl.value = fontSize;
     fontSizeVal.textContent = fontSize;
   } else {
