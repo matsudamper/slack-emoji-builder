@@ -2,6 +2,7 @@ const textInput      = document.getElementById('text-input');
 const fontSizeEl     = document.getElementById('font-size');
 const fontSizeVal    = document.getElementById('font-size-value');
 const fontAutoEl     = document.getElementById('font-size-auto');
+const lineBreakEl    = document.getElementById('line-break');
 const fontFamSel     = document.getElementById('font-family');
 const textColorEl    = document.getElementById('text-color');
 const bgColorEl      = document.getElementById('bg-color');
@@ -50,7 +51,7 @@ function drawEmoji(size, fontSize) {
   ctx.textBaseline = 'alphabetic';
 
   const text = textInput.value.trim() || ' ';
-  const lines = wrapText(ctx, text, size);
+  const lines = getLines(ctx, text, size, lineBreakEl.checked);
   const lineHeight = scaledFontSize * 1.2;
   const totalHeight = lines.length * lineHeight;
 
@@ -109,7 +110,28 @@ function wrapText(ctx, text, maxWidth) {
   return lines.length ? lines : [' '];
 }
 
-function calculateAutoFontSize(text, fontFamily, canvasSize, borderSize) {
+// Split text into two lines using ceil(n/2) / floor(n/2) when n >= 3.
+// Uses Unicode-aware character counting so that multi-byte characters and
+// emoji are each treated as one unit.
+function splitTextIntoLines(text) {
+  const chars = [...text];
+  const n = chars.length;
+  if (n < 3) return [text];
+  const firstCount = Math.ceil(n / 2);
+  return [
+    chars.slice(0, firstCount).join(''),
+    chars.slice(firstCount).join(''),
+  ];
+}
+
+function getLines(ctx, text, maxWidth, lineBreakEnabled) {
+  if (lineBreakEnabled) {
+    return splitTextIntoLines(text);
+  }
+  return wrapText(ctx, text, maxWidth);
+}
+
+function calculateAutoFontSize(text, fontFamily, canvasSize, borderSize, lineBreakEnabled) {
   const canvas = document.createElement('canvas');
   canvas.width = canvasSize;
   canvas.height = canvasSize;
@@ -122,7 +144,7 @@ function calculateAutoFontSize(text, fontFamily, canvasSize, borderSize) {
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2);
     ctx.font = `bold ${mid}px ${fontFamily}`;
-    const lines = wrapText(ctx, text, available);
+    const lines = getLines(ctx, text, available, lineBreakEnabled);
     const lineHeight = mid * 1.2;
     const totalHeight = lines.length * lineHeight;
 
@@ -154,7 +176,7 @@ generateBtn.addEventListener('click', () => {
 
   if (fontAutoEl.checked) {
     const borderSize = parseInt(borderSizeEl.value, 10);
-    fontSize = calculateAutoFontSize(text, fontFamSel.value, BASE_SIZE, borderSize);
+    fontSize = calculateAutoFontSize(text, fontFamSel.value, BASE_SIZE, borderSize, lineBreakEl.checked);
     fontSizeEl.value = fontSize;
     fontSizeVal.textContent = fontSize;
   } else {
