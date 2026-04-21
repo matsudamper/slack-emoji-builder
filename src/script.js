@@ -439,6 +439,7 @@ fontSizeEl.disabled = fontAutoEl.checked;
 const BASE_SIZE = 128;
 const ANIMATION_TOTAL_FRAMES = 24;
 const ANIMATION_FRAME_DELAY = 70;
+const ANIMATION_MEASURE_PADDING = BASE_SIZE * 2;
 const FALLBACK_ASCENT_RATIO  = 0.8;
 const FALLBACK_DESCENT_RATIO = 0.2;
 const SLOT_CHARS = '!?#$%&*+0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -486,14 +487,18 @@ function drawEmoji(size, fontSize, opts) {
   const rotation = opts.rotation || 0;
   const translateX = (opts.translateX || 0) * unit;
   const translateY = (opts.translateY || 0) * unit;
+  const outputPadding = opts.outputPadding || 0;
 
   const canvas = document.createElement('canvas');
-  canvas.width  = size;
-  canvas.height = size;
+  canvas.width  = size + outputPadding * 2;
+  canvas.height = size + outputPadding * 2;
   const ctx = canvas.getContext('2d');
 
+  ctx.save();
+  if (outputPadding) ctx.translate(outputPadding, outputPadding);
+
   ctx.fillStyle = opts.bgColor || bgColorEl.value;
-  if (!bgTransparentEl.checked) {
+  if (!opts.skipBackground && !bgTransparentEl.checked) {
     ctx.fillRect(0, 0, size, size);
   }
 
@@ -519,6 +524,7 @@ function drawEmoji(size, fontSize, opts) {
     drawTextLayer(ctx, size, scaledFontSize, drawOpts);
   }
 
+  ctx.restore();
   ctx.restore();
   return canvas;
 }
@@ -938,7 +944,7 @@ function applyAnimationEffect(key, phase, frame, opts, baseText) {
   }
 }
 
-function buildFrameOptions(frame) {
+function buildFrameOptions(frame, animationLayout) {
   const opts = {};
   const baseText = getBaseText();
 
@@ -950,13 +956,71 @@ function buildFrameOptions(frame) {
     applyAnimationEffect(def.key, getPhase(frame, speed), frame, opts, baseText);
   });
 
+  if (animationLayout?.offsetY) {
+    addTranslate(opts, 0, animationLayout.offsetY);
+  }
+
   return opts;
 }
 
-function buildGif(size, fontSize) {
+function measureCanvasAlphaBounds(canvas, padding) {
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  let data;
+  try {
+    data = ctx.getImageData(0, 0, width, height).data;
+  } catch (_) {
+    return null;
+  }
+  let top = height;
+  let bottom = -1;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3] > 0) {
+        if (y < top) top = y;
+        if (y > bottom) bottom = y;
+      }
+    }
+  }
+
+  if (bottom < top) return null;
+  return {
+    top: top - padding,
+    bottom: bottom - padding,
+  };
+}
+
+function buildAnimationLayout(fontSize) {
+  let top = Infinity;
+  let bottom = -Infinity;
+
+  for (let frame = 0; frame < ANIMATION_TOTAL_FRAMES; frame++) {
+    const frameCanvas = drawEmoji(BASE_SIZE, fontSize, {
+      ...buildFrameOptions(frame),
+      skipBackground: true,
+      outputPadding: ANIMATION_MEASURE_PADDING,
+    });
+    const bounds = measureCanvasAlphaBounds(frameCanvas, ANIMATION_MEASURE_PADDING);
+    if (!bounds) continue;
+
+    top = Math.min(top, bounds.top);
+    bottom = Math.max(bottom, bounds.bottom);
+  }
+
+  if (!Number.isFinite(top) || !Number.isFinite(bottom)) {
+    return { offsetY: 0 };
+  }
+
+  const animationCenterY = (top + bottom + 1) / 2;
+  return { offsetY: BASE_SIZE / 2 - animationCenterY };
+}
+
+function buildGif(size, fontSize, animationLayout) {
   var encoder = new GifEncoder(size, size);
   for (var f = 0; f < ANIMATION_TOTAL_FRAMES; f++) {
-    encoder.addFrame(drawEmoji(size, fontSize, buildFrameOptions(f)), { delay: ANIMATION_FRAME_DELAY });
+    encoder.addFrame(drawEmoji(size, fontSize, buildFrameOptions(f, animationLayout)), { delay: ANIMATION_FRAME_DELAY });
   }
   return encoder;
 }
@@ -985,6 +1049,7 @@ generateBtn.addEventListener('click', async () => {
   canvasWrapLight.innerHTML = '';
 
   const animated = isAnimationEnabled();
+  const animationLayout = animated ? buildAnimationLayout(fontSize) : null;
 
   const sizes = [
     { size: BASE_SIZE, label: '128×128' },
@@ -995,7 +1060,7 @@ generateBtn.addEventListener('click', async () => {
   [canvasWrapDark, canvasWrapLight].forEach(wrap => {
     sizes.forEach(({ size, label }) => {
       if (animated) {
-        const gif = buildGif(size, fontSize);
+        const gif = buildGif(size, fontSize, animationLayout);
         const img = document.createElement('img');
         img.src = gif.toDataURL();
         img.title = label;
@@ -1033,7 +1098,7 @@ generateBtn.addEventListener('click', async () => {
   const safeName = textInput.value.trim().replace(/[/\\:*?"<>|]/g, '_') || 'emoji';
 
   if (animated) {
-    const mainGif = buildGif(BASE_SIZE, fontSize);
+    const mainGif = buildGif(BASE_SIZE, fontSize, animationLayout);
     downloadLink.href = mainGif.toDataURL();
     downloadLink.download = safeName + '.gif';
     downloadBtn.textContent = 'Download GIF (128×128)';
