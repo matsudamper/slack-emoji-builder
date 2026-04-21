@@ -24,6 +24,28 @@ body {
   padding: 32px;
   width: 100%;
   max-width: 520px;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 900px) {
+  .container {
+    max-width: 960px;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 32px;
+  }
+
+  .form-section {
+    flex: 0 0 456px;
+  }
+
+  .preview-section {
+    flex: 1;
+    margin-top: 0;
+    position: sticky;
+    top: 24px;
+  }
 }
 
 h1 {

@@ -8,92 +8,94 @@
 </head>
 <body>
   <div class="container">
-    <h1>Slack Emoji Builder</h1>
+    <div class="form-section">
+      <h1>Slack Emoji Builder</h1>
 
-    <div class="field">
-      <label for="text-input">Text</label>
-      <input type="text" id="text-input" placeholder="e.g. 🎉 done!" maxlength="20" />
-    </div>
+      <div class="field">
+        <label for="text-input">Text</label>
+        <input type="text" id="text-input" placeholder="e.g. 🎉 done!" maxlength="20" />
+      </div>
 
-    <div class="field">
-      <label for="font-size">Font size</label>
-      <div class="font-size-row">
-        <input type="range" id="font-size" min="8" max="80" value="32" />
-        <span id="font-size-value" class="font-size-value">32</span>
+      <div class="field">
+        <label for="font-size">Font size</label>
+        <div class="font-size-row">
+          <input type="range" id="font-size" min="8" max="80" value="32" />
+          <span id="font-size-value" class="font-size-value">32</span>
+          <label class="auto-label">
+            <input type="checkbox" id="font-size-auto" checked />
+            Auto
+          </label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Text direction</label>
+        <div class="direction-toggle" id="direction-toggle">
+          <span class="direction-indicator" id="direction-indicator"></span>
+          <button type="button" class="direction-btn active" data-direction="horizontal">横</button>
+          <button type="button" class="direction-btn" data-direction="vertical">縦</button>
+        </div>
+      </div>
+
+      <div class="field">
         <label class="auto-label">
-          <input type="checkbox" id="font-size-auto" checked />
-          Auto
+          <input type="checkbox" id="line-break" checked />
+          Auto line break
         </label>
       </div>
-    </div>
 
-    <div class="field">
-      <label>Text direction</label>
-      <div class="direction-toggle" id="direction-toggle">
-        <span class="direction-indicator" id="direction-indicator"></span>
-        <button type="button" class="direction-btn active" data-direction="horizontal">横</button>
-        <button type="button" class="direction-btn" data-direction="vertical">縦</button>
-      </div>
-    </div>
-
-    <div class="field">
-      <label class="auto-label">
-        <input type="checkbox" id="line-break" checked />
-        Auto line break
-      </label>
-    </div>
-
-    <div class="field">
-      <label for="font-family">Font</label>
-      <select id="font-family">
-        <option value="sans-serif" selected>Sans-serif</option>
-        <option value="serif">Serif</option>
-        <option value="monospace">Monospace</option>
-        <option value="Impact, sans-serif">Impact</option>
-      </select>
-    </div>
-
-    <div class="color-row">
       <div class="field">
-        <label>Text color</label>
-        <div class="color-input-wrap">
-          <input type="color" id="text-color" value="#ffffff" />
-          <input type="text" class="color-hex" id="text-color-hex" value="#ffffff" maxlength="7" spellcheck="false" />
+        <label for="font-family">Font</label>
+        <select id="font-family">
+          <option value="sans-serif" selected>Sans-serif</option>
+          <option value="serif">Serif</option>
+          <option value="monospace">Monospace</option>
+          <option value="Impact, sans-serif">Impact</option>
+        </select>
+      </div>
+
+      <div class="color-row">
+        <div class="field">
+          <label>Text color</label>
+          <div class="color-input-wrap">
+            <input type="color" id="text-color" value="#ffffff" />
+            <input type="text" class="color-hex" id="text-color-hex" value="#ffffff" maxlength="7" spellcheck="false" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Background</label>
+          <div class="color-input-wrap" id="bg-color-wrap">
+            <input type="color" id="bg-color" value="#4a9cf6" />
+            <input type="text" class="color-hex" id="bg-color-hex" value="#4a9cf6" maxlength="7" spellcheck="false" />
+          </div>
+          <label class="auto-label">
+            <input type="checkbox" id="bg-transparent" checked />
+            Transparent
+          </label>
         </div>
       </div>
-      <div class="field">
-        <label>Background</label>
-        <div class="color-input-wrap" id="bg-color-wrap">
-          <input type="color" id="bg-color" value="#4a9cf6" />
-          <input type="text" class="color-hex" id="bg-color-hex" value="#4a9cf6" maxlength="7" spellcheck="false" />
-        </div>
-        <label class="auto-label">
-          <input type="checkbox" id="bg-transparent" checked />
-          Transparent
-        </label>
-      </div>
-    </div>
 
-    <div class="field">
-      <label for="border-size">Border size</label>
-      <div class="font-size-row">
-        <input type="range" id="border-size" min="0" max="20" value="0" />
-        <span id="border-size-value" class="font-size-value">0</span>
-      </div>
-    </div>
-
-    <div class="color-row">
       <div class="field">
-        <label>Border color</label>
-        <div class="color-input-wrap">
-          <input type="color" id="border-color" value="#000000" />
-          <input type="text" class="color-hex" id="border-color-hex" value="#000000" maxlength="7" spellcheck="false" />
+        <label for="border-size">Border size</label>
+        <div class="font-size-row">
+          <input type="range" id="border-size" min="0" max="20" value="0" />
+          <span id="border-size-value" class="font-size-value">0</span>
         </div>
       </div>
-      <div class="field"></div>
-    </div>
 
-    <button id="generate-btn">Generate Image</button>
+      <div class="color-row">
+        <div class="field">
+          <label>Border color</label>
+          <div class="color-input-wrap">
+            <input type="color" id="border-color" value="#000000" />
+            <input type="text" class="color-hex" id="border-color-hex" value="#000000" maxlength="7" spellcheck="false" />
+          </div>
+        </div>
+        <div class="field"></div>
+      </div>
+
+      <button id="generate-btn">Generate Image</button>
+    </div>
 
     <div class="preview-section" id="preview-section">
       <span class="preview-label">Preview</span>
