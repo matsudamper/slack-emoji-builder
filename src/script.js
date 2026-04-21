@@ -1,24 +1,48 @@
-const textInput      = document.getElementById('text-input');
-const fontSizeEl     = document.getElementById('font-size');
-const fontSizeVal    = document.getElementById('font-size-value');
-const fontAutoEl     = document.getElementById('font-size-auto');
-const lineBreakEl    = document.getElementById('line-break');
-const fontFamSel     = document.getElementById('font-family');
-const textColorEl    = document.getElementById('text-color');
-const bgColorEl      = document.getElementById('bg-color');
-const textHexEl      = document.getElementById('text-color-hex');
-const bgHexEl        = document.getElementById('bg-color-hex');
-const borderSizeEl   = document.getElementById('border-size');
-const borderSizeVal  = document.getElementById('border-size-value');
-const borderColorEl  = document.getElementById('border-color');
-const borderHexEl    = document.getElementById('border-color-hex');
-const generateBtn    = document.getElementById('generate-btn');
-const previewSec     = document.getElementById('preview-section');
-const canvasWrap     = document.getElementById('canvas-wrap');
-const downloadLink   = document.getElementById('download-link');
-const downloadBtn    = document.getElementById('download-btn');
+const textInput        = document.getElementById('text-input');
+const fontSizeEl       = document.getElementById('font-size');
+const fontSizeVal      = document.getElementById('font-size-value');
+const fontAutoEl       = document.getElementById('font-size-auto');
+const lineBreakEl      = document.getElementById('line-break');
+const fontFamSel       = document.getElementById('font-family');
+const textColorEl      = document.getElementById('text-color');
+const bgColorEl        = document.getElementById('bg-color');
+const textHexEl        = document.getElementById('text-color-hex');
+const bgHexEl          = document.getElementById('bg-color-hex');
+const borderSizeEl     = document.getElementById('border-size');
+const borderSizeVal    = document.getElementById('border-size-value');
+const borderColorEl    = document.getElementById('border-color');
+const borderHexEl      = document.getElementById('border-color-hex');
+const generateBtn      = document.getElementById('generate-btn');
+const previewSec       = document.getElementById('preview-section');
+const canvasWrap       = document.getElementById('canvas-wrap');
+const downloadLink     = document.getElementById('download-link');
+const downloadBtn      = document.getElementById('download-btn');
+const directionToggle  = document.getElementById('direction-toggle');
+const directionIndicator = document.getElementById('direction-indicator');
+const directionBtns    = directionToggle.querySelectorAll('.direction-btn');
 
 const STORAGE_KEY = 'slackEmojiBuilderSettings';
+
+let currentDirection = 'horizontal';
+
+function getDirection() {
+  return currentDirection;
+}
+
+function setDirection(dir) {
+  currentDirection = dir;
+  directionBtns.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.direction === dir);
+  });
+  directionIndicator.classList.toggle('right', dir === 'vertical');
+}
+
+directionBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    setDirection(btn.dataset.direction);
+    saveSettings();
+  });
+});
 
 function saveSettings() {
   const settings = {
@@ -30,6 +54,7 @@ function saveSettings() {
     bgColor:     bgColorEl.value,
     borderSize:  borderSizeEl.value,
     borderColor: borderColorEl.value,
+    direction:   currentDirection,
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -73,6 +98,9 @@ function loadSettings() {
   if (settings.borderColor !== undefined) {
     borderColorEl.value = settings.borderColor;
     borderHexEl.value = settings.borderColor;
+  }
+  if (settings.direction !== undefined) {
+    setDirection(settings.direction);
   }
 }
 
@@ -136,6 +164,19 @@ function drawEmoji(size, fontSize) {
 
   const scaledFontSize = Math.round(fontSize * (size / BASE_SIZE));
   ctx.font = `bold ${scaledFontSize}px ${fontFamSel.value}`;
+
+  const isVertical = getDirection() === 'vertical';
+
+  if (isVertical) {
+    drawVerticalText(ctx, size, scaledFontSize);
+  } else {
+    drawHorizontalText(ctx, size, scaledFontSize);
+  }
+
+  return canvas;
+}
+
+function drawHorizontalText(ctx, size, scaledFontSize) {
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'alphabetic';
 
@@ -144,21 +185,11 @@ function drawEmoji(size, fontSize) {
   const lineHeight = scaledFontSize * 1.2;
   const totalHeight = lines.length * lineHeight;
 
-  // Use font metrics so the visual centre of the text block lands at the canvas
-  // centre.  textBaseline='middle' positions y at the em-box centre, which sits
-  // above the visual centre of most glyphs; switching to 'alphabetic' and
-  // computing the baseline from fontBoundingBoxAscent/Descent corrects this.
-  //
-  // Measure against a string that covers typical cap-height and descender
-  // extent so the metrics are stable regardless of the actual text content.
-  const FALLBACK_ASCENT_RATIO  = 0.8; // typical ratio of ascent  to font size
-  const FALLBACK_DESCENT_RATIO = 0.2; // typical ratio of descent to font size
+  const FALLBACK_ASCENT_RATIO  = 0.8;
+  const FALLBACK_DESCENT_RATIO = 0.2;
   const metrics = ctx.measureText('Aq');
   const ascent  = metrics.fontBoundingBoxAscent  ?? scaledFontSize * FALLBACK_ASCENT_RATIO;
   const descent = metrics.fontBoundingBoxDescent ?? scaledFontSize * FALLBACK_DESCENT_RATIO;
-  // The visual centre of the font box is (ascent - descent) / 2 above the
-  // alphabetic baseline.  startY is the baseline of the first line positioned
-  // so the entire block is vertically centred.
   const startY = (size - totalHeight) / 2 + lineHeight / 2 + (ascent - descent) / 2;
 
   const borderSize = parseInt(borderSizeEl.value, 10);
@@ -177,8 +208,45 @@ function drawEmoji(size, fontSize) {
   lines.forEach((line, i) => {
     ctx.fillText(line, size / 2, startY + i * lineHeight);
   });
+}
 
-  return canvas;
+function drawVerticalText(ctx, size, scaledFontSize) {
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+
+  const text = textInput.value.trim() || ' ';
+  const columns = getVerticalColumns(text, lineBreakEl.checked);
+  const charHeight = scaledFontSize * 1.15;
+  const colWidth = scaledFontSize * 1.15;
+  const totalWidth = columns.length * colWidth;
+
+  // Columns go right-to-left in vertical writing
+  const startX = (size + totalWidth) / 2 - colWidth / 2;
+
+  const borderSize = parseInt(borderSizeEl.value, 10);
+
+  columns.forEach((col, ci) => {
+    const chars = [...col];
+    const totalColHeight = chars.length * charHeight;
+    const colStartY = (size - totalColHeight) / 2 + charHeight / 2;
+    const x = startX - ci * colWidth;
+
+    chars.forEach((ch, ri) => {
+      const y = colStartY + ri * charHeight;
+
+      if (borderSize > 0) {
+        const scaledBorder = Math.round(borderSize * (size / BASE_SIZE));
+        ctx.strokeStyle = borderColorEl.value;
+        ctx.lineWidth   = scaledBorder * 2;
+        ctx.lineJoin    = 'round';
+        ctx.miterLimit  = 2;
+        ctx.strokeText(ch, x, y);
+      }
+
+      ctx.fillStyle = textColorEl.value;
+      ctx.fillText(ch, x, y);
+    });
+  });
 }
 
 function wrapText(ctx, text, maxWidth) {
@@ -220,6 +288,19 @@ function getLines(ctx, text, maxWidth, lineBreakEnabled) {
   return wrapText(ctx, text, maxWidth);
 }
 
+// Split text into vertical columns using ceil(n/2) / floor(n/2) when n >= 3.
+// Each column is a string of characters drawn top-to-bottom. Columns are
+// rendered right-to-left. Mirrors splitTextIntoLines for horizontal mode.
+function getVerticalColumns(text, lineBreakEnabled) {
+  const chars = [...text];
+  if (!lineBreakEnabled || chars.length < 3) return [text];
+  const firstCount = Math.ceil(chars.length / 2);
+  return [
+    chars.slice(0, firstCount).join(''),
+    chars.slice(firstCount).join(''),
+  ];
+}
+
 function calculateAutoFontSize(text, fontFamily, canvasSize, borderSize, lineBreakEnabled) {
   const canvas = document.createElement('canvas');
   canvas.width = canvasSize;
@@ -228,24 +309,38 @@ function calculateAutoFontSize(text, fontFamily, canvasSize, borderSize, lineBre
 
   // Reserve space for the border on both sides so it does not overflow.
   const available = canvasSize - borderSize * 2;
+  const isVertical = getDirection() === 'vertical';
 
   let lo = 1, hi = canvasSize;
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2);
     ctx.font = `bold ${mid}px ${fontFamily}`;
-    const lines = getLines(ctx, text, available, lineBreakEnabled);
-    const lineHeight = mid * 1.2;
-    const totalHeight = lines.length * lineHeight;
 
-    let allLinesFit = true;
-    for (const line of lines) {
-      if (ctx.measureText(line).width > available) {
-        allLinesFit = false;
-        break;
+    let fits;
+    if (isVertical) {
+      const columns = getVerticalColumns(text, lineBreakEnabled);
+      const charHeight = mid * 1.15;
+      const colWidth = mid * 1.15;
+      const totalWidth = columns.length * colWidth;
+      const maxColChars = Math.max(...columns.map(c => [...c].length));
+      const totalHeight = maxColChars * charHeight;
+      fits = totalWidth <= available && totalHeight <= available;
+    } else {
+      const lines = getLines(ctx, text, available, lineBreakEnabled);
+      const lineHeight = mid * 1.2;
+      const totalHeight = lines.length * lineHeight;
+
+      let allLinesFit = true;
+      for (const line of lines) {
+        if (ctx.measureText(line).width > available) {
+          allLinesFit = false;
+          break;
+        }
       }
+      fits = totalHeight <= available && allLinesFit;
     }
 
-    if (totalHeight <= available && allLinesFit) {
+    if (fits) {
       lo = mid;
     } else {
       hi = mid - 1;

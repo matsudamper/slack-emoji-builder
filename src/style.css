@@ -248,6 +248,51 @@ button:active {
   text-align: right;
 }
 
+.direction-toggle {
+  display: inline-flex;
+  position: relative;
+  background: #2c2f33;
+  border: 1px solid #383b40;
+  border-radius: 999px;
+  padding: 3px;
+}
+
+.direction-indicator {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  height: calc(100% - 6px);
+  background: #4a9cf6;
+  border-radius: 999px;
+  transition: transform 0.2s ease;
+  pointer-events: none;
+}
+
+.direction-indicator.right {
+  transform: translateX(100%);
+}
+
+.direction-btn {
+  position: relative;
+  z-index: 1;
+  width: 48px;
+  padding: 6px 0;
+  margin: 0;
+  background: none;
+  border: none;
+  border-radius: 999px;
+  color: #9b9ca0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.direction-btn.active {
+  color: #fff;
+}
+
 .auto-label {
   display: flex;
   align-items: center;
