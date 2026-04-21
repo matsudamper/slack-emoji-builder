@@ -284,10 +284,12 @@ button:active {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .font-size-row input[type="range"] {
   flex: 1;
+  min-width: 0;
   accent-color: #4a9cf6;
   cursor: pointer;
 }
@@ -303,6 +305,8 @@ button:active {
   font-family: monospace;
   min-width: 24px;
   text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .direction-toggle {
@@ -408,6 +412,29 @@ button:active {
 }
 
 @media (max-width: 560px) {
+  .font-size-control-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "slider value"
+      "auto auto";
+    column-gap: 10px;
+    row-gap: 8px;
+  }
+
+  .font-size-control-row #font-size {
+    grid-area: slider;
+    width: 100%;
+  }
+
+  .font-size-control-row #font-size-value {
+    grid-area: value;
+  }
+
+  .font-size-control-row .auto-label {
+    grid-area: auto;
+  }
+
   .anim-row {
     grid-template-columns: 1fr;
     row-gap: 8px;
