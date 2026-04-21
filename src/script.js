@@ -215,6 +215,8 @@ fontSizeEl.disabled = fontAutoEl.checked;
 const BASE_SIZE = 128;
 const ANIMATION_TOTAL_FRAMES = 12;
 const ANIMATION_FRAME_DELAYS = { 1: 150, 2: 120, 3: 80, 4: 60, 5: 40 };
+const FALLBACK_ASCENT_RATIO  = 0.8;
+const FALLBACK_DESCENT_RATIO = 0.2;
 
 function drawEmoji(size, fontSize, opts) {
   opts = opts || {};
@@ -259,15 +261,13 @@ function drawHorizontalText(ctx, size, scaledFontSize) {
 
   const text = textInput.value.trim() || ' ';
   const lines = getLines(ctx, text, size, lineBreakEl.checked);
-  const lineHeight = scaledFontSize * 1.2;
-  const totalHeight = lines.length * lineHeight;
 
-  const FALLBACK_ASCENT_RATIO  = 0.8;
-  const FALLBACK_DESCENT_RATIO = 0.2;
   const metrics = ctx.measureText('Aq');
   const ascent  = metrics.fontBoundingBoxAscent  ?? scaledFontSize * FALLBACK_ASCENT_RATIO;
   const descent = metrics.fontBoundingBoxDescent ?? scaledFontSize * FALLBACK_DESCENT_RATIO;
-  const startY = (size - totalHeight) / 2 + lineHeight / 2 + (ascent - descent) / 2;
+  const lineHeight = ascent + descent;
+  const totalHeight = lines.length * lineHeight;
+  const startY = (size - totalHeight) / 2 + ascent;
 
   const borderSize = parseInt(borderSizeEl.value, 10);
   if (borderSize > 0) {
@@ -404,7 +404,10 @@ function calculateAutoFontSize(text, fontFamily, canvasSize, borderSize, lineBre
       fits = totalWidth <= available && totalHeight <= available;
     } else {
       const lines = getLines(ctx, text, available, lineBreakEnabled);
-      const lineHeight = mid * 1.2;
+      const metrics = ctx.measureText('Aq');
+      const ascent  = metrics.fontBoundingBoxAscent  ?? mid * FALLBACK_ASCENT_RATIO;
+      const descent = metrics.fontBoundingBoxDescent ?? mid * FALLBACK_DESCENT_RATIO;
+      const lineHeight = ascent + descent;
       const totalHeight = lines.length * lineHeight;
 
       let allLinesFit = true;
