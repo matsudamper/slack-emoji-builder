@@ -60,11 +60,11 @@ function loadSettings() {
   }
   if (settings.textColor !== undefined) {
     textColorEl.value = settings.textColor;
-    textHexEl.textContent = settings.textColor;
+    textHexEl.value = settings.textColor;
   }
   if (settings.bgColor !== undefined) {
     bgColorEl.value = settings.bgColor;
-    bgHexEl.textContent = settings.bgColor;
+    bgHexEl.value = settings.bgColor;
   }
   if (settings.borderSize !== undefined) {
     borderSizeEl.value = settings.borderSize;
@@ -72,15 +72,39 @@ function loadSettings() {
   }
   if (settings.borderColor !== undefined) {
     borderColorEl.value = settings.borderColor;
-    borderHexEl.textContent = settings.borderColor;
+    borderHexEl.value = settings.borderColor;
   }
 }
 
 loadSettings();
 
-textColorEl.addEventListener('input', () => { textHexEl.textContent = textColorEl.value; saveSettings(); });
-bgColorEl.addEventListener('input',   () => { bgHexEl.textContent   = bgColorEl.value;   saveSettings(); });
-borderColorEl.addEventListener('input', () => { borderHexEl.textContent = borderColorEl.value; saveSettings(); });
+textColorEl.addEventListener('input', () => { textHexEl.value = textColorEl.value; saveSettings(); });
+bgColorEl.addEventListener('input',   () => { bgHexEl.value   = bgColorEl.value;   saveSettings(); });
+borderColorEl.addEventListener('input', () => { borderHexEl.value = borderColorEl.value; saveSettings(); });
+
+const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+function expandHex(hex) {
+  if (hex.length === 4) {
+    return '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+  }
+  return hex;
+}
+
+function syncHexInput(hexEl, colorEl) {
+  const val = hexEl.value.trim();
+  if (HEX_RE.test(val)) {
+    hexEl.classList.remove('invalid');
+    colorEl.value = expandHex(val);
+    saveSettings();
+  } else {
+    hexEl.classList.add('invalid');
+  }
+}
+
+textHexEl.addEventListener('input',    () => syncHexInput(textHexEl,   textColorEl));
+bgHexEl.addEventListener('input',      () => syncHexInput(bgHexEl,     bgColorEl));
+borderHexEl.addEventListener('input',  () => syncHexInput(borderHexEl, borderColorEl));
 borderSizeEl.addEventListener('input', () => { borderSizeVal.textContent = borderSizeEl.value; saveSettings(); });
 
 fontSizeEl.addEventListener('input', () => {
