@@ -1,21 +1,35 @@
-const textInput   = document.getElementById('text-input');
-const fontSizeSel = document.getElementById('font-size');
-const fontFamSel  = document.getElementById('font-family');
-const textColorEl = document.getElementById('text-color');
-const bgColorEl   = document.getElementById('bg-color');
-const textHexEl   = document.getElementById('text-color-hex');
-const bgHexEl     = document.getElementById('bg-color-hex');
-const generateBtn = document.getElementById('generate-btn');
-const previewSec  = document.getElementById('preview-section');
-const canvasWrap  = document.getElementById('canvas-wrap');
+const textInput    = document.getElementById('text-input');
+const fontSizeEl   = document.getElementById('font-size');
+const fontSizeVal  = document.getElementById('font-size-value');
+const fontAutoEl   = document.getElementById('font-size-auto');
+const fontFamSel   = document.getElementById('font-family');
+const textColorEl  = document.getElementById('text-color');
+const bgColorEl    = document.getElementById('bg-color');
+const textHexEl    = document.getElementById('text-color-hex');
+const bgHexEl      = document.getElementById('bg-color-hex');
+const generateBtn  = document.getElementById('generate-btn');
+const previewSec   = document.getElementById('preview-section');
+const canvasWrap   = document.getElementById('canvas-wrap');
 const downloadLink = document.getElementById('download-link');
+const downloadBtn  = document.getElementById('download-btn');
 
 textColorEl.addEventListener('input', () => { textHexEl.textContent = textColorEl.value; });
 bgColorEl.addEventListener('input',   () => { bgHexEl.textContent   = bgColorEl.value;   });
 
+fontSizeEl.addEventListener('input', () => {
+  fontSizeVal.textContent = fontSizeEl.value;
+});
+
+fontAutoEl.addEventListener('change', () => {
+  fontSizeEl.disabled = fontAutoEl.checked;
+});
+
+// Initialize slider state
+fontSizeEl.disabled = fontAutoEl.checked;
+
 const BASE_SIZE = 128;
 
-function drawEmoji(size) {
+function drawEmoji(size, fontSize) {
   const canvas = document.createElement('canvas');
   canvas.width  = size;
   canvas.height = size;
@@ -24,14 +38,14 @@ function drawEmoji(size) {
   ctx.fillStyle = bgColorEl.value;
   ctx.fillRect(0, 0, size, size);
 
-  const scaledFontSize = Math.round(parseInt(fontSizeSel.value, 10) * (size / BASE_SIZE));
+  const scaledFontSize = Math.round(fontSize * (size / BASE_SIZE));
   ctx.font = `bold ${scaledFontSize}px ${fontFamSel.value}`;
   ctx.fillStyle    = textColorEl.value;
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
 
   const text = textInput.value.trim() || ' ';
-  const lines = wrapText(ctx, text, size * 0.9);
+  const lines = wrapText(ctx, text, size);
   const lineHeight = scaledFontSize * 1.2;
   const totalHeight = lines.length * lineHeight;
   const startY = (size - totalHeight) / 2 + lineHeight / 2;
@@ -61,10 +75,52 @@ function wrapText(ctx, text, maxWidth) {
   return lines.length ? lines : [' '];
 }
 
+function calculateAutoFontSize(text, fontFamily, canvasSize) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvasSize;
+  canvas.height = canvasSize;
+  const ctx = canvas.getContext('2d');
+
+  let lo = 1, hi = canvasSize;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    ctx.font = `bold ${mid}px ${fontFamily}`;
+    const lines = wrapText(ctx, text, canvasSize);
+    const lineHeight = mid * 1.2;
+    const totalHeight = lines.length * lineHeight;
+
+    let allLinesFit = true;
+    for (const line of lines) {
+      if (ctx.measureText(line).width > canvasSize) {
+        allLinesFit = false;
+        break;
+      }
+    }
+
+    if (totalHeight <= canvasSize && allLinesFit) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return lo;
+}
+
 generateBtn.addEventListener('click', () => {
   if (!textInput.value.trim()) {
     textInput.focus();
     return;
+  }
+
+  const text = textInput.value.trim();
+  let fontSize;
+
+  if (fontAutoEl.checked) {
+    fontSize = calculateAutoFontSize(text, fontFamSel.value, BASE_SIZE);
+    fontSizeEl.value = fontSize;
+    fontSizeVal.textContent = fontSize;
+  } else {
+    fontSize = parseInt(fontSizeEl.value, 10);
   }
 
   canvasWrap.innerHTML = '';
@@ -76,7 +132,7 @@ generateBtn.addEventListener('click', () => {
   ];
 
   sizes.forEach(({ size, label }) => {
-    const canvas = drawEmoji(size);
+    const canvas = drawEmoji(size, fontSize);
     canvas.title = label;
 
     const box = document.createElement('div');
@@ -91,10 +147,10 @@ generateBtn.addEventListener('click', () => {
     canvasWrap.appendChild(box);
   });
 
-  const mainCanvas = drawEmoji(BASE_SIZE);
+  const mainCanvas = drawEmoji(BASE_SIZE, fontSize);
   downloadLink.href = mainCanvas.toDataURL('image/png');
   const safeName = textInput.value.trim().replace(/[/\\:*?"<>|]/g, '_') || 'emoji';
   downloadLink.download = safeName + '.png';
 
-  previewSec.classList.add('visible');
+  downloadBtn.disabled = false;
 });
