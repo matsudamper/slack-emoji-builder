@@ -288,8 +288,9 @@ function getLines(ctx, text, maxWidth, lineBreakEnabled) {
   return wrapText(ctx, text, maxWidth);
 }
 
-// Split text into vertical columns. Each column is a string of characters
-// drawn top-to-bottom. Columns are rendered right-to-left.
+// Split text into vertical columns using ceil(n/2) / floor(n/2) when n >= 3.
+// Each column is a string of characters drawn top-to-bottom. Columns are
+// rendered right-to-left. Mirrors splitTextIntoLines for horizontal mode.
 function getVerticalColumns(text, lineBreakEnabled) {
   const chars = [...text];
   if (!lineBreakEnabled || chars.length < 3) return [text];
