@@ -1,11 +1,11 @@
 /**
- * Minimal GIF89a animated encoder.
+ * 最小限のGIF89aアニメーションエンコーダ。
  *
- * Public API:
+ * 使い方:
  *   const enc = new GifEncoder(width, height);
- *   enc.addFrame(canvas, { delay: 80 });   // delay in ms
+ *   enc.addFrame(canvas, { delay: 80 });   // delay（ミリ秒）
  *   enc.addFrame(canvas2, { delay: 80 });
- *   const blob = enc.toBlob();              // Blob of type image/gif
+ *   const blob = enc.toBlob();              // image/gif 型の Blob
  *   const url  = enc.toDataURL();           // data:image/gif;base64,...
  */
 (function (global) {

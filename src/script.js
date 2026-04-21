@@ -213,6 +213,8 @@ fontFamSel.addEventListener('change',  () => { saveSettings(); });
 fontSizeEl.disabled = fontAutoEl.checked;
 
 const BASE_SIZE = 128;
+const ANIMATION_TOTAL_FRAMES = 12;
+const ANIMATION_FRAME_DELAYS = { 1: 150, 2: 120, 3: 80, 4: 60, 5: 40 };
 
 function drawEmoji(size, fontSize, opts) {
   opts = opts || {};
@@ -429,16 +431,13 @@ function isAnimationEnabled() {
 }
 
 function buildGif(size, fontSize) {
-  var totalFrames = 12;
   var speedIndex = parseInt(rotationSpeedEl.value, 10);
-  // Frame delay: speed 1 = 150ms, 2 = 120ms, 3 = 80ms, 4 = 60ms, 5 = 40ms
-  var delays = { 1: 150, 2: 120, 3: 80, 4: 60, 5: 40 };
-  var delay = delays[speedIndex] || 80;
+  var delay = ANIMATION_FRAME_DELAYS[speedIndex] || 80;
   var scaleAmount = parseInt(scaleAmountEl.value, 10) / 100;
 
   var encoder = new GifEncoder(size, size);
-  for (var f = 0; f < totalFrames; f++) {
-    var t = f / totalFrames;
+  for (var f = 0; f < ANIMATION_TOTAL_FRAMES; f++) {
+    var t = f / ANIMATION_TOTAL_FRAMES;
     var opts = {};
     if (animScaleEl.checked) {
       opts.scale = 1 + scaleAmount * Math.sin(2 * Math.PI * t);
