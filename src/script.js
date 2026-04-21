@@ -145,7 +145,9 @@ loadSettings();
 
 function applyAnimVisibility() {
   scaleAmountField.classList.toggle('visible', animScaleEl.checked);
+  scaleAmountField.setAttribute('aria-hidden', String(!animScaleEl.checked));
   rotationSpeedField.classList.toggle('visible', animRotationEl.checked);
+  rotationSpeedField.setAttribute('aria-hidden', String(!animRotationEl.checked));
 }
 
 applyAnimVisibility();

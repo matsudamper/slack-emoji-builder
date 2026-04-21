@@ -367,13 +367,69 @@ button:active {
   margin-bottom: 0;
 }
 
+.anim-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.anim-row {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  align-items: center;
+  column-gap: 16px;
+}
+
+.anim-row > .auto-label {
+  width: 7.5em;
+}
+
 .anim-sub {
-  display: none;
-  margin-left: 20px;
+  display: grid;
+  grid-template-columns: 5.75em minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.anim-sub > label {
+  display: block;
+  margin-bottom: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  width: 5.75em;
+}
+
+.anim-sub .font-size-row {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .anim-row {
+    grid-template-columns: 1fr;
+    row-gap: 8px;
+  }
+
+  .anim-row > .auto-label {
+    width: auto;
+  }
+
+  .anim-sub {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .anim-sub > label {
+    width: auto;
+  }
 }
 
 .anim-sub.visible {
-  display: block;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .size-box img {
