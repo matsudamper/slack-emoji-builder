@@ -220,6 +220,41 @@ const ANIMATION_FRAME_DELAYS = { 1: 150, 2: 120, 3: 80, 4: 60, 5: 40 };
 const FALLBACK_ASCENT_RATIO  = 0.8;
 const FALLBACK_DESCENT_RATIO = 0.2;
 
+function measureTightLine(ctx, line, fontSize) {
+  const metrics = ctx.measureText(line || ' ');
+  const ascent = metrics.actualBoundingBoxAscent
+    ?? metrics.fontBoundingBoxAscent
+    ?? fontSize * FALLBACK_ASCENT_RATIO;
+  const descent = metrics.actualBoundingBoxDescent
+    ?? metrics.fontBoundingBoxDescent
+    ?? fontSize * FALLBACK_DESCENT_RATIO;
+
+  return {
+    ascent: Math.max(0, ascent),
+    descent: Math.max(0, descent),
+  };
+}
+
+function buildTightLineLayout(ctx, lines, fontSize, canvasSize, borderPadding) {
+  const border = borderPadding || 0;
+  const lineGap = border * 2;
+  const lineMetrics = lines.map(line => measureTightLine(ctx, line, fontSize));
+  const textHeight = lineMetrics.reduce((sum, metrics) => {
+    return sum + metrics.ascent + metrics.descent;
+  }, 0);
+  const totalHeight = textHeight + Math.max(0, lines.length - 1) * lineGap + border * 2;
+  let y = (canvasSize - totalHeight) / 2 + border;
+  const baselines = lineMetrics.map((metrics, i) => {
+    if (i > 0) y += lineGap;
+    y += metrics.ascent;
+    const baseline = y;
+    y += metrics.descent;
+    return baseline;
+  });
+
+  return { baselines, totalHeight };
+}
+
 function drawEmoji(size, fontSize, opts) {
   opts = opts || {};
   const scale = opts.scale !== undefined ? opts.scale : 1;
@@ -261,31 +296,27 @@ function drawHorizontalText(ctx, size, scaledFontSize) {
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'alphabetic';
 
-  const text = textInput.value.trim() || ' ';
-  const lines = getLines(ctx, text, size, lineBreakEl.checked);
-
-  const metrics = ctx.measureText('Aq');
-  const ascent  = metrics.fontBoundingBoxAscent  ?? scaledFontSize * FALLBACK_ASCENT_RATIO;
-  const descent = metrics.fontBoundingBoxDescent ?? scaledFontSize * FALLBACK_DESCENT_RATIO;
-  const lineHeight = ascent + descent;
-  const totalHeight = lines.length * lineHeight;
-  const startY = (size - totalHeight) / 2 + ascent;
-
   const borderSize = parseInt(borderSizeEl.value, 10);
-  if (borderSize > 0) {
-    const scaledBorder = Math.round(borderSize * (size / BASE_SIZE));
+  const scaledBorder = Math.round(borderSize * (size / BASE_SIZE));
+  const availableWidth = Math.max(1, size - scaledBorder * 2);
+  const text = textInput.value.trim() || ' ';
+  const lines = getLines(ctx, text, availableWidth, lineBreakEl.checked);
+
+  const { baselines } = buildTightLineLayout(ctx, lines, scaledFontSize, size, scaledBorder);
+
+  if (scaledBorder > 0) {
     ctx.strokeStyle = borderColorEl.value;
     ctx.lineWidth   = scaledBorder * 2;
     ctx.lineJoin    = 'round';
     ctx.miterLimit  = 2;
     lines.forEach((line, i) => {
-      ctx.strokeText(line, size / 2, startY + i * lineHeight);
+      ctx.strokeText(line, size / 2, baselines[i]);
     });
   }
 
   ctx.fillStyle = textColorEl.value;
   lines.forEach((line, i) => {
-    ctx.fillText(line, size / 2, startY + i * lineHeight);
+    ctx.fillText(line, size / 2, baselines[i]);
   });
 }
 
@@ -406,11 +437,7 @@ function calculateAutoFontSize(text, fontFamily, canvasSize, borderSize, lineBre
       fits = totalWidth <= available && totalHeight <= available;
     } else {
       const lines = getLines(ctx, text, available, lineBreakEnabled);
-      const metrics = ctx.measureText('Aq');
-      const ascent  = metrics.fontBoundingBoxAscent  ?? mid * FALLBACK_ASCENT_RATIO;
-      const descent = metrics.fontBoundingBoxDescent ?? mid * FALLBACK_DESCENT_RATIO;
-      const lineHeight = ascent + descent;
-      const totalHeight = lines.length * lineHeight;
+      const { totalHeight } = buildTightLineLayout(ctx, lines, mid, canvasSize, borderSize);
 
       let allLinesFit = true;
       for (const line of lines) {
@@ -419,7 +446,7 @@ function calculateAutoFontSize(text, fontFamily, canvasSize, borderSize, lineBre
           break;
         }
       }
-      fits = totalHeight <= available && allLinesFit;
+      fits = totalHeight <= canvasSize && allLinesFit;
     }
 
     if (fits) {
