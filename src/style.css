@@ -255,15 +255,24 @@ button:active {
   gap: 6px;
 }
 
-.size-box canvas {
+.size-box canvas,
+.size-box img {
   display: block;
   image-rendering: pixelated;
-  outline: 1px solid rgba(148, 148, 148, 0.4);
+  outline: 2px solid currentColor;
 }
 
 .size-tag {
   font-size: 11px;
-  color: #9b9ca0;
+  color: currentColor;
+}
+
+.canvas-wrap--dark .size-box {
+  color: #ffffff;
+}
+
+.canvas-wrap--light .size-box {
+  color: #000000;
 }
 
 .preview-actions {
@@ -578,10 +587,4 @@ button:active {
 
 .anim-sub.visible {
   display: flex;
-}
-
-.size-box img {
-  display: block;
-  image-rendering: pixelated;
-  outline: 1px solid rgba(148, 148, 148, 0.4);
 }
