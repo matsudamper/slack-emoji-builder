@@ -97,7 +97,16 @@
 
     <div class="preview-section" id="preview-section">
       <span class="preview-label">Preview</span>
-      <div class="canvas-wrap" id="canvas-wrap"></div>
+      <div class="preview-panels">
+        <div class="preview-panel">
+          <span class="preview-theme-label">ダーク</span>
+          <div class="canvas-wrap canvas-wrap--dark" id="canvas-wrap-dark"></div>
+        </div>
+        <div class="preview-panel">
+          <span class="preview-theme-label">ライト</span>
+          <div class="canvas-wrap canvas-wrap--light" id="canvas-wrap-light"></div>
+        </div>
+      </div>
       <a id="download-link" download="emoji.png">
         <button class="download-btn" id="download-btn" disabled>Download PNG (128×128)</button>
       </a>
