@@ -208,6 +208,7 @@ button:active {
 
 .preview-panels {
   display: flex;
+  flex-direction: column;
   gap: 12px;
   width: 100%;
 }
@@ -217,7 +218,7 @@ button:active {
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  flex: 1;
+  width: 100%;
 }
 
 .preview-theme-label {
