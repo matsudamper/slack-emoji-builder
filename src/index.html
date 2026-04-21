@@ -97,17 +97,11 @@
       <div class="field">
         <label>Animation</label>
         <div class="anim-container">
-          <div class="anim-checkboxes">
+          <div class="anim-row">
             <label class="auto-label">
               <input type="checkbox" id="anim-scale" />
               拡大縮小
             </label>
-            <label class="auto-label">
-              <input type="checkbox" id="anim-rotation" />
-              回転
-            </label>
-          </div>
-          <div class="anim-configs">
             <div class="anim-sub" id="scale-amount-field">
               <label for="scale-amount">拡大量</label>
               <div class="font-size-row">
@@ -115,6 +109,12 @@
                 <span id="scale-amount-value" class="font-size-value">30%</span>
               </div>
             </div>
+          </div>
+          <div class="anim-row">
+            <label class="auto-label">
+              <input type="checkbox" id="anim-rotation" />
+              回転
+            </label>
             <div class="anim-sub" id="rotation-speed-field">
               <label for="rotation-speed">回転速度</label>
               <div class="font-size-row">
