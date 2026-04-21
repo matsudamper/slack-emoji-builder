@@ -15,25 +15,26 @@
       <input type="text" id="text-input" placeholder="e.g. 🎉 done!" maxlength="20" />
     </div>
 
-    <div class="row">
-      <div class="field">
-        <label for="font-size">Font size</label>
-        <select id="font-size">
-          <option value="20">Small</option>
-          <option value="32" selected>Medium</option>
-          <option value="44">Large</option>
-          <option value="56">Extra large</option>
-        </select>
+    <div class="field">
+      <label for="font-size">Font size</label>
+      <div class="font-size-row">
+        <input type="range" id="font-size" min="8" max="80" value="32" />
+        <span id="font-size-value" class="font-size-value">32</span>
+        <label class="auto-label">
+          <input type="checkbox" id="font-size-auto" checked />
+          Auto
+        </label>
       </div>
-      <div class="field">
-        <label for="font-family">Font</label>
-        <select id="font-family">
-          <option value="sans-serif" selected>Sans-serif</option>
-          <option value="serif">Serif</option>
-          <option value="monospace">Monospace</option>
-          <option value="Impact, sans-serif">Impact</option>
-        </select>
-      </div>
+    </div>
+
+    <div class="field">
+      <label for="font-family">Font</label>
+      <select id="font-family">
+        <option value="sans-serif" selected>Sans-serif</option>
+        <option value="serif">Serif</option>
+        <option value="monospace">Monospace</option>
+        <option value="Impact, sans-serif">Impact</option>
+      </select>
     </div>
 
     <div class="color-row">
@@ -59,7 +60,7 @@
       <span class="preview-label">Preview</span>
       <div class="canvas-wrap" id="canvas-wrap"></div>
       <a id="download-link" download="emoji.png">
-        <button class="download-btn" id="download-btn">Download PNG (128×128)</button>
+        <button class="download-btn" id="download-btn" disabled>Download PNG (128×128)</button>
       </a>
     </div>
   </div>
