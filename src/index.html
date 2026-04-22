@@ -22,8 +22,8 @@
       <div class="field">
         <label for="font-size">Font size</label>
         <div class="font-size-row font-size-control-row">
-          <input type="range" id="font-size" min="8" max="80" value="32" />
-          <span id="font-size-value" class="font-size-value">32</span>
+          <input type="range" id="font-size" />
+          <span id="font-size-value" class="font-size-value"></span>
           <label class="auto-label">
             <input type="checkbox" id="font-size-auto" checked />
             Auto
@@ -44,8 +44,8 @@
       <div class="field" id="circle-diameter-field" hidden>
         <label for="circle-diameter">円の直径</label>
         <div class="font-size-row">
-          <input type="range" id="circle-diameter" min="0" max="128" value="82" />
-          <span id="circle-diameter-value" class="font-size-value">82px</span>
+          <input type="range" id="circle-diameter" />
+          <span id="circle-diameter-value" class="font-size-value"></span>
         </div>
       </div>
 
@@ -94,8 +94,8 @@
       <div class="field">
         <label for="border-size">Border size</label>
         <div class="font-size-row">
-          <input type="range" id="border-size" min="0" max="20" value="0" />
-          <span id="border-size-value" class="font-size-value">0</span>
+          <input type="range" id="border-size" />
+          <span id="border-size-value" class="font-size-value"></span>
         </div>
       </div>
 
@@ -140,7 +140,7 @@
       <div class="preview-actions">
         <button type="button" id="generate-btn">Generate Image</button>
         <a id="download-link" download="emoji.png">
-          <button class="download-btn" id="download-btn" disabled>Download PNG (128×128)</button>
+          <button class="download-btn" id="download-btn" disabled>Download PNG</button>
         </a>
       </div>
     </div>

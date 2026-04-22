@@ -32,8 +32,23 @@ const animationCount   = document.getElementById('animation-count');
 const animationClearBtn = document.getElementById('animation-clear-btn');
 const animContainer    = document.getElementById('anim-container');
 
-const BASE_SIZE = 128;
+// 生成サイズとプレビューサイズを変える場合はここだけ編集する。
+const SIZE_CONFIG = Object.freeze({
+  baseSize: 128,
+  outputSize: 128,
+  previewSizes: [128, 64, 32],
+});
+const BASE_SIZE = SIZE_CONFIG.baseSize;
+const OUTPUT_SIZE = SIZE_CONFIG.outputSize;
+const PREVIEW_SIZES = SIZE_CONFIG.previewSizes;
 const STORAGE_KEY = 'slackEmojiBuilderSettings';
+const SETTINGS_BASE_SIZE_KEY = 'settingsBaseSize';
+const LEGACY_SETTINGS_BASE_SIZE = 128;
+const FONT_SIZE_MIN = Math.max(1, Math.round(BASE_SIZE * 0.0625));
+const FONT_SIZE_MAX = Math.max(FONT_SIZE_MIN, Math.round(BASE_SIZE * 0.625));
+const DEFAULT_FONT_SIZE = Math.round(BASE_SIZE * 0.25);
+const DEFAULT_BORDER_SIZE = 0;
+const BORDER_SIZE_MAX = Math.max(DEFAULT_BORDER_SIZE, Math.round(BASE_SIZE * 0.15625));
 const DEFAULT_CIRCLE_DIAMETER = Math.round(BASE_SIZE * TextLayout.DEFAULT_CIRCLE_DIAMETER_RATIO);
 const DEFAULT_FONT_FAMILY = fontFamSel.options[0]?.value || 'sans-serif';
 const LEGACY_FONT_FAMILY_MAP = {
@@ -62,7 +77,8 @@ const previewRenderer = new PreviewRenderer({
   lightWrap: canvasWrapLight,
   downloadLink,
   downloadButton: downloadBtn,
-  baseSize: BASE_SIZE,
+  outputSize: OUTPUT_SIZE,
+  previewSizes: PREVIEW_SIZES,
 });
 
 function isFontFamilyOption(value) {
@@ -200,6 +216,7 @@ const SETTING_FIELDS = [
 
 function saveSettings() {
   const settings = {
+    [SETTINGS_BASE_SIZE_KEY]: BASE_SIZE,
     ...readFormSettings(),
     ...animationManager.getStorageState(),
   };
@@ -224,18 +241,21 @@ function loadSettings() {
     settings = JSON.parse(raw);
   } catch (_) { return; }
 
-  if (settings.fontSize !== undefined) {
-    setFontSizeValue(settings.fontSize);
+  const normalizedSettings = normalizeStoredSizeSettings(settings);
+
+  if (normalizedSettings.fontSize !== undefined) {
+    setFontSizeValue(normalizedSettings.fontSize);
   }
   SETTING_FIELDS.forEach(field => {
     if (field.key === 'fontSize') return;
-    if (settings[field.key] !== undefined) {
-      field.set(settings[field.key]);
+    if (normalizedSettings[field.key] !== undefined) {
+      field.set(normalizedSettings[field.key]);
     }
   });
-  animationManager.applyStorageState(settings);
+  animationManager.applyStorageState(normalizedSettings);
 }
 
+initializeSizeDependentControls();
 loadSettings();
 applyCircleDiameterAvailability();
 
@@ -292,6 +312,41 @@ function setRangeValue(rangeEl, valueEl, value, suffix = '') {
   valueEl.textContent = rangeEl.value + suffix;
 }
 
+function setRangeBounds(rangeEl, min, max) {
+  rangeEl.min = String(min);
+  rangeEl.max = String(max);
+}
+
+function initializeSizeDependentControls() {
+  setRangeBounds(fontSizeEl, FONT_SIZE_MIN, FONT_SIZE_MAX);
+  setFontSizeValue(DEFAULT_FONT_SIZE);
+
+  setRangeBounds(borderSizeEl, 0, BORDER_SIZE_MAX);
+  setRangeValue(borderSizeEl, borderSizeVal, DEFAULT_BORDER_SIZE);
+
+  setRangeBounds(circleDiameterEl, 0, BASE_SIZE);
+  setRangeValue(circleDiameterEl, circleDiameterVal, DEFAULT_CIRCLE_DIAMETER, 'px');
+}
+
+function normalizeStoredSizeSettings(settings) {
+  const storedBaseSize = parseNumber(settings[SETTINGS_BASE_SIZE_KEY], LEGACY_SETTINGS_BASE_SIZE);
+  if (storedBaseSize <= 0 || storedBaseSize === BASE_SIZE) return settings;
+
+  const scale = BASE_SIZE / storedBaseSize;
+  return {
+    ...settings,
+    fontSize: scaleStoredSizeValue(settings.fontSize, scale),
+    borderSize: scaleStoredSizeValue(settings.borderSize, scale),
+    circleDiameter: scaleStoredSizeValue(settings.circleDiameter, scale),
+  };
+}
+
+function scaleStoredSizeValue(value, scale) {
+  if (value === undefined) return value;
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? String(Math.round(parsed * scale)) : value;
+}
+
 bindColorInput(textColorEl, textHexEl);
 bindColorInput(bgColorEl, bgHexEl);
 bindColorInput(borderColorEl, borderHexEl);
@@ -338,8 +393,8 @@ function readCurrentSettings() {
   return {
     ...settings,
     text: getBaseText(),
-    fontSize: parseNumber(settings.fontSize, 32),
-    borderSize: parseNumber(settings.borderSize, 0),
+    fontSize: parseNumber(settings.fontSize, DEFAULT_FONT_SIZE),
+    borderSize: parseNumber(settings.borderSize, DEFAULT_BORDER_SIZE),
     circleDiameter: parseNumber(settings.circleDiameter, DEFAULT_CIRCLE_DIAMETER),
   };
 }

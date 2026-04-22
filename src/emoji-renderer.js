@@ -10,6 +10,8 @@
     splitCharacters,
   } = global.TextLayout;
 
+  const EFFECT_BASE_SIZE = 128;
+
   class EmojiRenderer {
     constructor({ baseSize }) {
       this.baseSize = baseSize;
@@ -76,7 +78,7 @@
     }
 
     drawGlitchText(ctx, size, scaledFontSize, settings, drawOpts, opts) {
-      const unit = size / this.baseSize;
+      const unit = size / EFFECT_BASE_SIZE;
       const seed = opts.glitchSeed || 0;
       const amount = opts.glitchAmount || 1;
       const shiftA = ((seed % 3) + 2) * unit * amount;
@@ -105,7 +107,7 @@
       this.drawTextLayer(ctx, size, scaledFontSize, settings, drawOpts);
 
       for (let i = 0; i < 2; i++) {
-        const bandY = (((seed * 23) + i * 41) % this.baseSize) * unit;
+        const bandY = (((seed * 23) + i * 41) % EFFECT_BASE_SIZE) * unit;
         const bandH = (7 + ((seed + i) % 5)) * unit;
         const bandShift = (i === 0 ? 1 : -1) * (4 + (seed % 4)) * unit * amount;
 

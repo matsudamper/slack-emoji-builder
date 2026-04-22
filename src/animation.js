@@ -294,6 +294,13 @@
       return ((frame / cycleFrames) * speed) % 1;
     }
 
+    normalizeFrameTranslation(opts) {
+      const unit = this.baseSize / DEFAULT_BASE_SIZE;
+      if (unit === 1) return;
+      if (opts.translateX !== undefined) opts.translateX *= unit;
+      if (opts.translateY !== undefined) opts.translateY *= unit;
+    }
+
     applyEffect(key, phase, frame, opts, baseText) {
       const effect = EFFECTS[key];
       if (!effect) return;
@@ -325,6 +332,7 @@
         const speed = this.getSpeed(def.key);
         this.applyEffect(def.key, this.getPhase(frame, speed, this.getCycleFrames(def.key)), frame, opts, text);
       });
+      this.normalizeFrameTranslation(opts);
 
       if (animationLayout?.offsetY) {
         addTranslate(opts, 0, animationLayout.offsetY);

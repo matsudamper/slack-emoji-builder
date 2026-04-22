@@ -279,11 +279,14 @@ button {
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  max-width: 100%;
 }
 
 .size-box canvas,
 .size-box img {
   display: block;
+  max-width: 100%;
+  height: auto;
   image-rendering: pixelated;
   outline: 2px solid currentColor;
 }

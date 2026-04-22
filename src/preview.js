@@ -1,11 +1,24 @@
 (function (global) {
   'use strict';
 
-  const PREVIEW_SIZES = [
-    { size: 128, label: '128×128' },
-    { size: 64, label: '64×64' },
-    { size: 32, label: '32×32' },
-  ];
+  function formatSizeLabel(size) {
+    return `${size}×${size}`;
+  }
+
+  function normalizePreviewSize(previewSize) {
+    if (typeof previewSize === 'number') {
+      return {
+        size: previewSize,
+        label: formatSizeLabel(previewSize),
+      };
+    }
+
+    const size = previewSize.size;
+    return {
+      size,
+      label: previewSize.label || formatSizeLabel(size),
+    };
+  }
 
   function createSizeBox(node, label) {
     node.title = label;
@@ -36,12 +49,19 @@
   }
 
   class PreviewRenderer {
-    constructor({ darkWrap, lightWrap, downloadLink, downloadButton, baseSize }) {
+    constructor({ darkWrap, lightWrap, downloadLink, downloadButton, outputSize, previewSizes }) {
       this.darkWrap = darkWrap;
       this.lightWrap = lightWrap;
       this.downloadLink = downloadLink;
       this.downloadButton = downloadButton;
-      this.baseSize = baseSize;
+      this.outputSize = outputSize;
+      this.outputLabel = formatSizeLabel(outputSize);
+      this.previewSizes = previewSizes.map(normalizePreviewSize);
+      this.downloadButton.textContent = this.buildDownloadLabel('PNG');
+    }
+
+    buildDownloadLabel(format) {
+      return `Download ${format} (${this.outputLabel})`;
     }
 
     render({ animated, fontSize, text, drawEmoji, animationManager, animationLayout }) {
@@ -49,7 +69,7 @@
       this.lightWrap.replaceChildren();
 
       [this.darkWrap, this.lightWrap].forEach(wrap => {
-        PREVIEW_SIZES.forEach(({ size, label }) => {
+        this.previewSizes.forEach(({ size, label }) => {
           const node = animated
             ? createGifImage(animationManager.buildGif(size, fontSize, animationLayout, drawEmoji, text), size, label)
             : drawEmoji(size, fontSize);
@@ -59,15 +79,15 @@
 
       const safeName = buildSafeFilename(text);
       if (animated) {
-        const mainGif = animationManager.buildGif(this.baseSize, fontSize, animationLayout, drawEmoji, text);
+        const mainGif = animationManager.buildGif(this.outputSize, fontSize, animationLayout, drawEmoji, text);
         this.downloadLink.href = mainGif.toDataURL();
         this.downloadLink.download = safeName + '.gif';
-        this.downloadButton.textContent = 'Download GIF (128×128)';
+        this.downloadButton.textContent = this.buildDownloadLabel('GIF');
       } else {
-        const mainCanvas = drawEmoji(this.baseSize, fontSize);
+        const mainCanvas = drawEmoji(this.outputSize, fontSize);
         this.downloadLink.href = mainCanvas.toDataURL('image/png');
         this.downloadLink.download = safeName + '.png';
-        this.downloadButton.textContent = 'Download PNG (128×128)';
+        this.downloadButton.textContent = this.buildDownloadLabel('PNG');
       }
 
       this.downloadButton.disabled = false;
