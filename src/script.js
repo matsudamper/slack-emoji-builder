@@ -37,6 +37,7 @@ const LEGACY_FONT_FAMILY_MAP = {
   'monospace': '"DotGothic16", "Noto Sans JP", monospace',
   'Impact, sans-serif': '"Dela Gothic One", "Noto Sans JP", sans-serif',
 };
+const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 let currentDirection = 'horizontal';
 
@@ -108,23 +109,81 @@ directionBtns.forEach(btn => {
   });
 });
 
+const SETTING_FIELDS = [
+  {
+    key: 'fontSize',
+    get: () => fontSizeEl.value,
+    set: value => setFontSizeValue(value),
+  },
+  {
+    key: 'fontAuto',
+    get: () => fontAutoEl.checked,
+    set: value => {
+      fontAutoEl.checked = Boolean(value);
+      applyFontAuto();
+    },
+  },
+  {
+    key: 'lineBreak',
+    get: () => lineBreakEl.checked,
+    set: value => { lineBreakEl.checked = Boolean(value); },
+  },
+  {
+    key: 'fontFamily',
+    get: getSelectedFontFamily,
+    set: setFontFamily,
+  },
+  {
+    key: 'textColor',
+    get: () => textColorEl.value,
+    set: value => setColorValue(textColorEl, textHexEl, value),
+  },
+  {
+    key: 'bgColor',
+    get: () => bgColorEl.value,
+    set: value => setColorValue(bgColorEl, bgHexEl, value),
+  },
+  {
+    key: 'bgTransparent',
+    get: () => bgTransparentEl.checked,
+    set: value => {
+      bgTransparentEl.checked = Boolean(value);
+      applyBgTransparent();
+    },
+  },
+  {
+    key: 'borderSize',
+    get: () => borderSizeEl.value,
+    set: value => setRangeValue(borderSizeEl, borderSizeVal, value),
+  },
+  {
+    key: 'borderColor',
+    get: () => borderColorEl.value,
+    set: value => setColorValue(borderColorEl, borderHexEl, value),
+  },
+  {
+    key: 'direction',
+    get: () => currentDirection,
+    set: setDirection,
+  },
+];
+
 function saveSettings() {
   const settings = {
-    fontSize:      fontSizeEl.value,
-    fontAuto:      fontAutoEl.checked,
-    lineBreak:     lineBreakEl.checked,
-    fontFamily:    getSelectedFontFamily(),
-    textColor:     textColorEl.value,
-    bgColor:       bgColorEl.value,
-    bgTransparent: bgTransparentEl.checked,
-    borderSize:    borderSizeEl.value,
-    borderColor:   borderColorEl.value,
-    direction:     currentDirection,
+    ...readFormSettings(),
     ...animationManager.getStorageState(),
   };
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   } catch (_) { /* ignore storage errors */ }
+}
+
+function readFormSettings() {
+  return SETTING_FIELDS.reduce((result, field) => {
+    result[field.key] = field.get();
+    return result;
+  }, {});
 }
 
 function loadSettings() {
@@ -136,42 +195,14 @@ function loadSettings() {
   } catch (_) { return; }
 
   if (settings.fontSize !== undefined) {
-    fontSizeEl.value = settings.fontSize;
-    fontSizeVal.textContent = settings.fontSize;
+    setFontSizeValue(settings.fontSize);
   }
-  if (settings.fontAuto !== undefined) {
-    fontAutoEl.checked = settings.fontAuto;
-    fontSizeEl.disabled = settings.fontAuto;
-  }
-  if (settings.lineBreak !== undefined) {
-    lineBreakEl.checked = settings.lineBreak;
-  }
-  if (settings.fontFamily !== undefined) {
-    setFontFamily(settings.fontFamily);
-  }
-  if (settings.textColor !== undefined) {
-    textColorEl.value = settings.textColor;
-    textHexEl.value = settings.textColor;
-  }
-  if (settings.bgColor !== undefined) {
-    bgColorEl.value = settings.bgColor;
-    bgHexEl.value = settings.bgColor;
-  }
-  if (settings.bgTransparent !== undefined) {
-    bgTransparentEl.checked = settings.bgTransparent;
-    applyBgTransparent();
-  }
-  if (settings.borderSize !== undefined) {
-    borderSizeEl.value = settings.borderSize;
-    borderSizeVal.textContent = settings.borderSize;
-  }
-  if (settings.borderColor !== undefined) {
-    borderColorEl.value = settings.borderColor;
-    borderHexEl.value = settings.borderColor;
-  }
-  if (settings.direction !== undefined) {
-    setDirection(settings.direction);
-  }
+  SETTING_FIELDS.forEach(field => {
+    if (field.key === 'fontSize') return;
+    if (settings[field.key] !== undefined) {
+      field.set(settings[field.key]);
+    }
+  });
   animationManager.applyStorageState(settings);
 }
 
@@ -184,16 +215,14 @@ function applyBgTransparent() {
   bgColorWrap.style.opacity = isTransparent ? '0.4' : '1';
 }
 
+function applyFontAuto() {
+  fontSizeEl.disabled = fontAutoEl.checked;
+}
+
 // Initialize transparent state (default is checked in HTML)
 applyBgTransparent();
 
 bgTransparentEl.addEventListener('change', () => { applyBgTransparent(); saveSettings(); });
-
-textColorEl.addEventListener('input', () => { textHexEl.value = textColorEl.value; saveSettings(); });
-bgColorEl.addEventListener('input',   () => { bgHexEl.value   = bgColorEl.value;   saveSettings(); });
-borderColorEl.addEventListener('input', () => { borderHexEl.value = borderColorEl.value; saveSettings(); });
-
-const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 function expandHex(hex) {
   if (hex.length === 4) {
@@ -202,29 +231,52 @@ function expandHex(hex) {
   return hex;
 }
 
+function setColorValue(colorEl, hexEl, value) {
+  const color = HEX_RE.test(value) ? expandHex(value) : colorEl.value;
+  colorEl.value = color;
+  hexEl.value = color;
+  hexEl.classList.remove('invalid');
+}
+
 function syncHexInput(hexEl, colorEl) {
   const val = hexEl.value.trim();
   if (HEX_RE.test(val)) {
-    hexEl.classList.remove('invalid');
-    colorEl.value = expandHex(val);
+    setColorValue(colorEl, hexEl, val);
     saveSettings();
   } else {
     hexEl.classList.add('invalid');
   }
 }
 
-textHexEl.addEventListener('input',    () => syncHexInput(textHexEl,   textColorEl));
-bgHexEl.addEventListener('input',      () => syncHexInput(bgHexEl,     bgColorEl));
-borderHexEl.addEventListener('input',  () => syncHexInput(borderHexEl, borderColorEl));
-borderSizeEl.addEventListener('input', () => { borderSizeVal.textContent = borderSizeEl.value; saveSettings(); });
+function bindColorInput(colorEl, hexEl) {
+  colorEl.addEventListener('input', () => {
+    setColorValue(colorEl, hexEl, colorEl.value);
+    saveSettings();
+  });
+  hexEl.addEventListener('input', () => syncHexInput(hexEl, colorEl));
+}
+
+function setRangeValue(rangeEl, valueEl, value) {
+  rangeEl.value = value;
+  valueEl.textContent = rangeEl.value;
+}
+
+bindColorInput(textColorEl, textHexEl);
+bindColorInput(bgColorEl, bgHexEl);
+bindColorInput(borderColorEl, borderHexEl);
+
+borderSizeEl.addEventListener('input', () => {
+  setRangeValue(borderSizeEl, borderSizeVal, borderSizeEl.value);
+  saveSettings();
+});
 
 fontSizeEl.addEventListener('input', () => {
-  fontSizeVal.textContent = fontSizeEl.value;
+  setRangeValue(fontSizeEl, fontSizeVal, fontSizeEl.value);
   saveSettings();
 });
 
 fontAutoEl.addEventListener('change', () => {
-  fontSizeEl.disabled = fontAutoEl.checked;
+  applyFontAuto();
   saveSettings();
 });
 
@@ -232,7 +284,7 @@ lineBreakEl.addEventListener('change', () => { saveSettings(); });
 fontFamSel.addEventListener('change',  () => { saveSettings(); });
 
 // Initialize slider state
-fontSizeEl.disabled = fontAutoEl.checked;
+applyFontAuto();
 
 function getBaseText() {
   return textInput.value.trim() || ' ';
@@ -244,18 +296,12 @@ function parseNumber(value, fallback) {
 }
 
 function readCurrentSettings() {
+  const settings = readFormSettings();
   return {
+    ...settings,
     text: getBaseText(),
-    fontSize: parseNumber(fontSizeEl.value, 32),
-    fontAuto: fontAutoEl.checked,
-    lineBreak: lineBreakEl.checked,
-    fontFamily: getSelectedFontFamily(),
-    textColor: textColorEl.value,
-    bgColor: bgColorEl.value,
-    bgTransparent: bgTransparentEl.checked,
-    borderSize: parseNumber(borderSizeEl.value, 0),
-    borderColor: borderColorEl.value,
-    direction: getDirection(),
+    fontSize: parseNumber(settings.fontSize, 32),
+    borderSize: parseNumber(settings.borderSize, 0),
   };
 }
 

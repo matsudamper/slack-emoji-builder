@@ -4,6 +4,9 @@
   const FALLBACK_ASCENT_RATIO = 0.8;
   const FALLBACK_DESCENT_RATIO = 0.2;
   const VERTICAL_METRIC_RATIO = 1.15;
+  const graphemeSegmenter = typeof Intl !== 'undefined' && Intl.Segmenter
+    ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+    : null;
 
   function measureTightLine(ctx, line, fontSize) {
     const metrics = ctx.measureText(line || ' ');
@@ -58,8 +61,13 @@
     return lines.length ? lines : [' '];
   }
 
+  function splitCharacters(text) {
+    if (!graphemeSegmenter) return [...text];
+    return Array.from(graphemeSegmenter.segment(text), segment => segment.segment);
+  }
+
   function splitTextByHalf(text) {
-    const chars = [...text];
+    const chars = splitCharacters(text);
     if (chars.length < 3) return [text];
 
     const firstCount = Math.ceil(chars.length / 2);
@@ -102,7 +110,7 @@
         const charHeight = mid * VERTICAL_METRIC_RATIO;
         const colWidth = mid * VERTICAL_METRIC_RATIO;
         const totalWidth = columns.length * colWidth;
-        const maxColChars = Math.max(...columns.map(c => [...c].length));
+        const maxColChars = Math.max(...columns.map(c => splitCharacters(c).length));
         const totalHeight = maxColChars * charHeight;
         fits = totalWidth <= available && totalHeight <= available;
       } else {
@@ -134,5 +142,6 @@
     calculateAutoFontSize,
     getHorizontalLines,
     getVerticalColumns,
+    splitCharacters,
   };
 })(typeof window !== 'undefined' ? window : this);

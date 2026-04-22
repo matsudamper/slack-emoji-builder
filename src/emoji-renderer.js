@@ -6,6 +6,7 @@
     buildTightLineLayout,
     getHorizontalLines,
     getVerticalColumns,
+    splitCharacters,
   } = global.TextLayout;
 
   class EmojiRenderer {
@@ -155,7 +156,7 @@
       const scaledBorder = Math.round(settings.borderSize * (size / this.baseSize));
 
       columns.forEach((col, ci) => {
-        const chars = [...col];
+        const chars = splitCharacters(col);
         const totalColHeight = chars.length * charHeight;
         const colStartY = (size - totalColHeight) / 2 + charHeight / 2;
         const x = startX - ci * colWidth;

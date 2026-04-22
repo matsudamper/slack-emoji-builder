@@ -26,6 +26,7 @@
   const ANIMATION_TOTAL_FRAMES = 24;
   const ANIMATION_FRAME_DELAY = 70;
   const SLOT_CHARS = '!?#$%&*+0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const textLayout = typeof window !== 'undefined' ? window.TextLayout : null;
 
   function formatSliderValue(controlDef, value) {
     return String(value) + (controlDef.suffix || '');
@@ -74,8 +75,14 @@
     return x - Math.floor(x);
   }
 
+  function splitAnimationCharacters(text) {
+    return textLayout?.splitCharacters
+      ? textLayout.splitCharacters(text)
+      : [...text];
+  }
+
   function buildSlotText(text, phase, frame) {
-    const chars = [...text];
+    const chars = splitAnimationCharacters(text);
     if (phase > 0.82) return text;
 
     const stopCount = Math.floor((phase / 0.82) * (chars.length + 1));
@@ -87,7 +94,7 @@
   }
 
   function buildTypingText(text, phase) {
-    const chars = [...text];
+    const chars = splitAnimationCharacters(text);
     if (phase > 0.78) return text;
 
     const count = Math.floor((phase / 0.78) * (chars.length + 1));
