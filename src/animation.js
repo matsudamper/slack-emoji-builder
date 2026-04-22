@@ -3,7 +3,7 @@
     { key: 'scale', label: '拡大縮小', defaultSpeed: 2, controls: [
       { key: 'amount', label: '拡大量', min: 10, max: 50, value: 30, suffix: '%' },
     ] },
-    { key: 'rotation', label: '回転', defaultSpeed: 1, cycleFrames: 48, toggles: [
+    { key: 'rotation', label: '回転', defaultSpeed: 1, cycleFrames: 48, speedControl: { max: 10, value: 2, step: 1, speedDivisor: 2 }, toggles: [
       { key: 'reverse', label: 'リバース', value: false },
     ] },
     { key: 'shake', label: 'ぷるぷる', defaultSpeed: 4 },
@@ -29,6 +29,7 @@
   const DEFAULT_BASE_SIZE = 128;
   const ANIMATION_TOTAL_FRAMES = 24;
   const ANIMATION_FRAME_DELAY = 70;
+  const ANIMATION_STORAGE_VERSION = 2;
   const SLOT_CHARS = '!?#$%&*+0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const textLayout = typeof window !== 'undefined' ? window.TextLayout : null;
 
@@ -267,6 +268,12 @@
       return Number.isFinite(speed) ? speed : 1;
     }
 
+    getSpeedDivisor(key) {
+      const slider = this.controls[key]?.sliders.speed;
+      const divisor = slider?.def.speedDivisor;
+      return Number.isFinite(divisor) && divisor > 0 ? divisor : 1;
+    }
+
     getCycleFrames(key) {
       const frames = this.controls[key]?.def.cycleFrames;
       return Number.isFinite(frames) ? frames : ANIMATION_TOTAL_FRAMES;
@@ -290,8 +297,8 @@
       return toggle ? toggle.input.checked : Boolean(fallback);
     }
 
-    getPhase(frame, speed, cycleFrames) {
-      return ((frame / cycleFrames) * speed) % 1;
+    getPhase(frame, speed, cycleFrames, speedDivisor = 1) {
+      return ((frame / cycleFrames) * speed / speedDivisor) % 1;
     }
 
     normalizeFrameTranslation(opts) {
@@ -330,7 +337,7 @@
         if (!control?.checkbox.checked) return;
 
         const speed = this.getSpeed(def.key);
-        this.applyEffect(def.key, this.getPhase(frame, speed, this.getCycleFrames(def.key)), frame, opts, text);
+        this.applyEffect(def.key, this.getPhase(frame, speed, this.getCycleFrames(def.key), this.getSpeedDivisor(def.key)), frame, opts, text);
       });
       this.normalizeFrameTranslation(opts);
 
@@ -441,7 +448,7 @@
 
         const sliderDefs = [
           ...(def.controls || []),
-          { key: 'speed', label: '速度', min: 1, max: 5, value: def.defaultSpeed || 3, suffix: '' },
+          { key: 'speed', label: '速度', min: 1, max: 5, value: def.defaultSpeed || 3, suffix: '', ...(def.speedControl || {}) },
         ];
         const sliders = {};
         const toggles = {};
@@ -466,6 +473,9 @@
           input.id = controlId;
           input.min = controlDef.min;
           input.max = controlDef.max;
+          if (controlDef.step !== undefined) {
+            input.step = controlDef.step;
+          }
           input.value = controlDef.value;
 
           const value = document.createElement('span');
@@ -582,6 +592,7 @@
       const animations = this.getAnimationSettings();
       return {
         animationExpanded: this.expanded,
+        animationStorageVersion: ANIMATION_STORAGE_VERSION,
         animations: animations,
         animScale: animations.scale.enabled,
         scaleAmount: animations.scale.amount,
@@ -600,6 +611,19 @@
       this.applyStoredAnimationSettings(settings);
     }
 
+    normalizeStoredSliderValue(key, sliderKey, slider, value, settings) {
+      if (key !== 'rotation' || sliderKey !== 'speed') return value;
+      if (settings.animationStorageVersion >= ANIMATION_STORAGE_VERSION) return value;
+
+      const speed = parseFloat(value);
+      const divisor = slider.def.speedDivisor;
+      if (!Number.isFinite(speed) || !Number.isFinite(divisor)) return value;
+
+      const min = parseInt(slider.input.min, 10);
+      const max = parseInt(slider.input.max, 10);
+      return String(Math.min(max, Math.max(min, Math.round(speed * divisor))));
+    }
+
     applyStoredAnimationSettings(settings) {
       const storedAnimations = settings.animations || {};
 
@@ -611,7 +635,7 @@
         }
         Object.entries(control.sliders).forEach(([sliderKey, slider]) => {
           if (stored[sliderKey] !== undefined) {
-            this.setSliderValue(slider, stored[sliderKey]);
+            this.setSliderValue(slider, this.normalizeStoredSliderValue(key, sliderKey, slider, stored[sliderKey], settings));
           }
         });
         Object.entries(control.toggles).forEach(([toggleKey, toggle]) => {
@@ -634,7 +658,8 @@
           this.controls.rotation.checkbox.checked = settings.animRotation;
         }
         if (settings.rotationSpeed !== undefined) {
-          this.setSliderValue(this.controls.rotation.sliders.speed, settings.rotationSpeed);
+          const slider = this.controls.rotation.sliders.speed;
+          this.setSliderValue(slider, this.normalizeStoredSliderValue('rotation', 'speed', slider, settings.rotationSpeed, settings));
         }
       }
 
