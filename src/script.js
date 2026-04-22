@@ -2,8 +2,8 @@ const textInput        = document.getElementById('text-input');
 const fontSizeEl       = document.getElementById('font-size');
 const fontSizeVal      = document.getElementById('font-size-value');
 const fontAutoEl       = document.getElementById('font-size-auto');
+const lineBreakField   = document.getElementById('line-break-field');
 const lineBreakEl      = document.getElementById('line-break');
-const lineBreakLabel   = lineBreakEl.closest('.auto-label');
 const circleDiameterField = document.getElementById('circle-diameter-field');
 const circleDiameterEl    = document.getElementById('circle-diameter');
 const circleDiameterVal   = document.getElementById('circle-diameter-value');
@@ -45,7 +45,6 @@ const LEGACY_FONT_FAMILY_MAP = {
 const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 let currentDirection = 'horizontal';
-let storedLineBreakChecked = lineBreakEl.checked;
 
 const animationManager = new AnimationManager({
   toggle: animationToggle,
@@ -117,18 +116,7 @@ function setDirection(dir) {
 
 function applyLineBreakAvailability() {
   const isCircle = currentDirection === 'circle';
-  if (isCircle) {
-    if (!lineBreakEl.disabled) {
-      storedLineBreakChecked = lineBreakEl.checked;
-    }
-    lineBreakEl.checked = false;
-  } else if (lineBreakEl.disabled) {
-    lineBreakEl.checked = storedLineBreakChecked;
-  }
-  lineBreakEl.disabled = isCircle;
-  if (lineBreakLabel) {
-    lineBreakLabel.classList.toggle('disabled', isCircle);
-  }
+  lineBreakField.hidden = isCircle;
 }
 
 function applyCircleDiameterAvailability() {
@@ -160,11 +148,9 @@ const SETTING_FIELDS = [
   },
   {
     key: 'lineBreak',
-    get: () => lineBreakEl.disabled ? storedLineBreakChecked : lineBreakEl.checked,
+    get: () => lineBreakEl.checked,
     set: value => {
-      storedLineBreakChecked = Boolean(value);
-      lineBreakEl.checked = storedLineBreakChecked;
-      applyLineBreakAvailability();
+      lineBreakEl.checked = Boolean(value);
     },
   },
   {
@@ -331,7 +317,6 @@ fontAutoEl.addEventListener('change', () => {
 });
 
 lineBreakEl.addEventListener('change', () => {
-  storedLineBreakChecked = lineBreakEl.checked;
   saveSettings();
 });
 fontFamSel.addEventListener('change',  () => { saveSettings(); });
