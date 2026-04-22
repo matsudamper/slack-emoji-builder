@@ -190,59 +190,14 @@
 
       const scaledBorder = Math.round(settings.borderSize * (size / this.baseSize));
       const centerX = size / 2;
+      const centerY = size / 2;
+      const radius = size * 0.32;
 
-      if (chars.length === 2) {
-        // Special layout for 2 characters:
-        // char 1 at top (normal), char 2 at bottom (upside down)
-        const circleCenterY = size / 2;
-        const radius = size * 0.32;
-
-        const positions = [
-          { angle: -Math.PI / 2, rotation: 0 },           // top, normal
-          { angle: Math.PI / 2, rotation: Math.PI },       // bottom, upside down
-        ];
-
-        chars.forEach((ch, i) => {
-          const { angle, rotation } = positions[i];
-          const x = centerX + radius * Math.cos(angle);
-          const y = circleCenterY + radius * Math.sin(angle);
-
-          ctx.save();
-          ctx.translate(x, y);
-          ctx.rotate(rotation);
-
-          if (scaledBorder > 0 && !drawOpts.skipBorder) {
-            ctx.strokeStyle = drawOpts.borderColor;
-            ctx.lineWidth = scaledBorder * 2;
-            ctx.lineJoin = 'round';
-            ctx.miterLimit = 2;
-            ctx.strokeText(ch, 0, 0);
-          }
-
-          ctx.fillStyle = drawOpts.textColor;
-          ctx.fillText(ch, 0, 0);
-          ctx.restore();
-        });
-        return;
-      }
-
-      const centerY = size;
-      const radius = size * 0.45;
-
-      // Measure total angular width of all characters
-      const charWidths = chars.map(ch => ctx.measureText(ch).width);
-      const totalArcWidth = charWidths.reduce((sum, w) => sum + w, 0);
-      const totalAngle = totalArcWidth / radius;
-
-      // Start angle: centered at the top (negative Y direction from center)
-      // Since center is at bottom, -PI/2 points straight up
-      const startAngle = -Math.PI / 2 - totalAngle / 2;
-
-      let currentAngle = startAngle;
+      // Distribute characters evenly around the circle.
+      // First character at top (-PI/2), subsequent characters clockwise.
+      // Each character is rotated to face outward from the center.
       chars.forEach((ch, i) => {
-        const halfCharAngle = (charWidths[i] / 2) / radius;
-        const angle = currentAngle + halfCharAngle;
-
+        const angle = -Math.PI / 2 + (i * 2 * Math.PI / chars.length);
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
 
@@ -261,8 +216,6 @@
         ctx.fillStyle = drawOpts.textColor;
         ctx.fillText(ch, 0, 0);
         ctx.restore();
-
-        currentAngle += halfCharAngle * 2;
       });
     }
   }
