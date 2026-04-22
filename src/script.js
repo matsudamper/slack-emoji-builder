@@ -99,7 +99,12 @@ function setDirection(dir) {
   directionBtns.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.direction === dir);
   });
-  directionIndicator.classList.toggle('right', dir === 'vertical');
+  directionIndicator.classList.remove('pos-1', 'pos-2');
+  if (dir === 'vertical') {
+    directionIndicator.classList.add('pos-1');
+  } else if (dir === 'circle') {
+    directionIndicator.classList.add('pos-2');
+  }
 }
 
 directionBtns.forEach(btn => {

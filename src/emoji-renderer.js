@@ -67,6 +67,8 @@
     drawTextLayer(ctx, size, scaledFontSize, settings, drawOpts) {
       if (settings.direction === 'vertical') {
         this.drawVerticalText(ctx, size, scaledFontSize, settings, drawOpts);
+      } else if (settings.direction === 'circle') {
+        this.drawCircleText(ctx, size, scaledFontSize, settings, drawOpts);
       } else {
         this.drawHorizontalText(ctx, size, scaledFontSize, settings, drawOpts);
       }
@@ -175,6 +177,56 @@
           ctx.fillStyle = drawOpts.textColor;
           ctx.fillText(ch, x, y);
         });
+      });
+    }
+
+    drawCircleText(ctx, size, scaledFontSize, settings, drawOpts) {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const text = drawOpts.text || ' ';
+      const chars = splitCharacters(text);
+      if (chars.length === 0) return;
+
+      const scaledBorder = Math.round(settings.borderSize * (size / this.baseSize));
+      const centerX = size / 2;
+      const centerY = size;
+      const radius = size * 0.45;
+
+      // Measure total angular width of all characters
+      const charWidths = chars.map(ch => ctx.measureText(ch).width);
+      const totalArcWidth = charWidths.reduce((sum, w) => sum + w, 0);
+      const totalAngle = totalArcWidth / radius;
+
+      // Start angle: centered at the top (negative Y direction from center)
+      // Since center is at bottom, -PI/2 points straight up
+      const startAngle = -Math.PI / 2 - totalAngle / 2;
+
+      let currentAngle = startAngle;
+      chars.forEach((ch, i) => {
+        const halfCharAngle = (charWidths[i] / 2) / radius;
+        const angle = currentAngle + halfCharAngle;
+
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle + Math.PI / 2);
+
+        if (scaledBorder > 0 && !drawOpts.skipBorder) {
+          ctx.strokeStyle = drawOpts.borderColor;
+          ctx.lineWidth = scaledBorder * 2;
+          ctx.lineJoin = 'round';
+          ctx.miterLimit = 2;
+          ctx.strokeText(ch, 0, 0);
+        }
+
+        ctx.fillStyle = drawOpts.textColor;
+        ctx.fillText(ch, 0, 0);
+        ctx.restore();
+
+        currentAngle += halfCharAngle * 2;
       });
     }
   }
