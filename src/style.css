@@ -431,6 +431,15 @@ button {
   margin-bottom: 0;
 }
 
+.auto-label.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auto-label.disabled input {
+  cursor: not-allowed;
+}
+
 .animation-header {
   display: flex;
   align-items: center;

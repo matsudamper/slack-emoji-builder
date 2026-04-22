@@ -3,6 +3,7 @@ const fontSizeEl       = document.getElementById('font-size');
 const fontSizeVal      = document.getElementById('font-size-value');
 const fontAutoEl       = document.getElementById('font-size-auto');
 const lineBreakEl      = document.getElementById('line-break');
+const lineBreakLabel   = lineBreakEl.closest('.auto-label');
 const fontFamSel       = document.getElementById('font-family');
 const textColorEl      = document.getElementById('text-color');
 const bgColorEl        = document.getElementById('bg-color');
@@ -40,6 +41,7 @@ const LEGACY_FONT_FAMILY_MAP = {
 const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 let currentDirection = 'horizontal';
+let storedLineBreakChecked = lineBreakEl.checked;
 
 const animationManager = new AnimationManager({
   toggle: animationToggle,
@@ -105,6 +107,23 @@ function setDirection(dir) {
   } else if (dir === 'circle') {
     directionIndicator.classList.add('pos-2');
   }
+  applyLineBreakAvailability();
+}
+
+function applyLineBreakAvailability() {
+  const isCircle = currentDirection === 'circle';
+  if (isCircle) {
+    if (!lineBreakEl.disabled) {
+      storedLineBreakChecked = lineBreakEl.checked;
+    }
+    lineBreakEl.checked = false;
+  } else if (lineBreakEl.disabled) {
+    lineBreakEl.checked = storedLineBreakChecked;
+  }
+  lineBreakEl.disabled = isCircle;
+  if (lineBreakLabel) {
+    lineBreakLabel.classList.toggle('disabled', isCircle);
+  }
 }
 
 directionBtns.forEach(btn => {
@@ -130,8 +149,12 @@ const SETTING_FIELDS = [
   },
   {
     key: 'lineBreak',
-    get: () => lineBreakEl.checked,
-    set: value => { lineBreakEl.checked = Boolean(value); },
+    get: () => lineBreakEl.disabled ? storedLineBreakChecked : lineBreakEl.checked,
+    set: value => {
+      storedLineBreakChecked = Boolean(value);
+      lineBreakEl.checked = storedLineBreakChecked;
+      applyLineBreakAvailability();
+    },
   },
   {
     key: 'fontFamily',
@@ -285,7 +308,10 @@ fontAutoEl.addEventListener('change', () => {
   saveSettings();
 });
 
-lineBreakEl.addEventListener('change', () => { saveSettings(); });
+lineBreakEl.addEventListener('change', () => {
+  storedLineBreakChecked = lineBreakEl.checked;
+  saveSettings();
+});
 fontFamSel.addEventListener('change',  () => { saveSettings(); });
 
 // Initialize slider state
