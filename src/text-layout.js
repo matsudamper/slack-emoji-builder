@@ -111,7 +111,7 @@
         const n = chars.length;
         const radius = canvasSize * 0.32;
         // Arc length per character segment
-        const arcPerChar = (2 * Math.PI * radius) / Math.max(n, 1);
+        const arcPerChar = (2 * Math.PI * radius) / n;
         const maxCharWidth = Math.max(...chars.map(ch => ctx.measureText(ch).width));
         // Each character must fit within its arc segment and within the radius
         fits = maxCharWidth <= arcPerChar && mid <= radius;

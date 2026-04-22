@@ -196,8 +196,9 @@
       // Distribute characters evenly around the circle.
       // First character at top (-PI/2), subsequent characters clockwise.
       // Each character is rotated to face outward from the center.
+      const angleStep = 2 * Math.PI / chars.length;
       chars.forEach((ch, i) => {
-        const angle = -Math.PI / 2 + (i * 2 * Math.PI / chars.length);
+        const angle = -Math.PI / 2 + i * angleStep;
         const x = centerX + radius * Math.cos(angle);
         const y = centerY + radius * Math.sin(angle);
 
