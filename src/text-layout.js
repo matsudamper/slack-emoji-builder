@@ -97,6 +97,7 @@
 
     const available = canvasSize - borderSize * 2;
     const isVertical = direction === 'vertical';
+    const isCircle = direction === 'circle';
 
     let lo = 1;
     let hi = canvasSize;
@@ -105,7 +106,16 @@
       ctx.font = `bold ${mid}px ${fontFamily}`;
 
       let fits;
-      if (isVertical) {
+      if (isCircle) {
+        const chars = splitCharacters(text);
+        const n = chars.length;
+        const radius = canvasSize * 0.32;
+        // Arc length per character segment
+        const arcPerChar = (2 * Math.PI * radius) / n;
+        const maxCharWidth = Math.max(...chars.map(ch => ctx.measureText(ch).width));
+        // Each character must fit within its arc segment and within the radius
+        fits = maxCharWidth <= arcPerChar && mid <= radius;
+      } else if (isVertical) {
         const columns = getVerticalColumns(text, lineBreakEnabled);
         const charHeight = mid * VERTICAL_METRIC_RATIO;
         const colWidth = mid * VERTICAL_METRIC_RATIO;

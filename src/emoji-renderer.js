@@ -67,6 +67,8 @@
     drawTextLayer(ctx, size, scaledFontSize, settings, drawOpts) {
       if (settings.direction === 'vertical') {
         this.drawVerticalText(ctx, size, scaledFontSize, settings, drawOpts);
+      } else if (settings.direction === 'circle') {
+        this.drawCircleText(ctx, size, scaledFontSize, settings, drawOpts);
       } else {
         this.drawHorizontalText(ctx, size, scaledFontSize, settings, drawOpts);
       }
@@ -175,6 +177,46 @@
           ctx.fillStyle = drawOpts.textColor;
           ctx.fillText(ch, x, y);
         });
+      });
+    }
+
+    drawCircleText(ctx, size, scaledFontSize, settings, drawOpts) {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const text = drawOpts.text || ' ';
+      const chars = splitCharacters(text);
+      if (chars.length === 0) return;
+
+      const scaledBorder = Math.round(settings.borderSize * (size / this.baseSize));
+      const centerX = size / 2;
+      const centerY = size / 2;
+      const radius = size * 0.32;
+
+      // Distribute characters evenly around the circle.
+      // First character at top (-PI/2), subsequent characters clockwise.
+      // Each character is rotated to face outward from the center.
+      const angleStep = 2 * Math.PI / chars.length;
+      chars.forEach((ch, i) => {
+        const angle = -Math.PI / 2 + i * angleStep;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle + Math.PI / 2);
+
+        if (scaledBorder > 0 && !drawOpts.skipBorder) {
+          ctx.strokeStyle = drawOpts.borderColor;
+          ctx.lineWidth = scaledBorder * 2;
+          ctx.lineJoin = 'round';
+          ctx.miterLimit = 2;
+          ctx.strokeText(ch, 0, 0);
+        }
+
+        ctx.fillStyle = drawOpts.textColor;
+        ctx.fillText(ch, 0, 0);
+        ctx.restore();
       });
     }
   }
