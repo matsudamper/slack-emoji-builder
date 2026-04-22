@@ -3,7 +3,7 @@
     { key: 'scale', label: '拡大縮小', defaultSpeed: 2, controls: [
       { key: 'amount', label: '拡大量', min: 10, max: 50, value: 30, suffix: '%' },
     ] },
-    { key: 'rotation', label: '回転', defaultSpeed: 1, toggles: [
+    { key: 'rotation', label: '回転', defaultSpeed: 1, cycleFrames: 48, toggles: [
       { key: 'reverse', label: 'リバース', value: false },
     ] },
     { key: 'shake', label: 'ぷるぷる', defaultSpeed: 4 },
@@ -267,6 +267,18 @@
       return Number.isFinite(speed) ? speed : 1;
     }
 
+    getCycleFrames(key) {
+      const frames = this.controls[key]?.def.cycleFrames;
+      return Number.isFinite(frames) ? frames : ANIMATION_TOTAL_FRAMES;
+    }
+
+    getFrameCount() {
+      return Object.values(this.controls).reduce((frameCount, control) => {
+        if (!control.checkbox.checked) return frameCount;
+        return Math.max(frameCount, this.getCycleFrames(control.def.key));
+      }, ANIMATION_TOTAL_FRAMES);
+    }
+
     getControlValue(key, controlKey, fallback) {
       const slider = this.controls[key]?.sliders[controlKey];
       const value = slider ? parseFloat(slider.input.value) : fallback;
@@ -278,8 +290,8 @@
       return toggle ? toggle.input.checked : Boolean(fallback);
     }
 
-    getPhase(frame, speed) {
-      return ((frame / ANIMATION_TOTAL_FRAMES) * speed) % 1;
+    getPhase(frame, speed, cycleFrames) {
+      return ((frame / cycleFrames) * speed) % 1;
     }
 
     applyEffect(key, phase, frame, opts, baseText) {
@@ -311,7 +323,7 @@
         if (!control?.checkbox.checked) return;
 
         const speed = this.getSpeed(def.key);
-        this.applyEffect(def.key, this.getPhase(frame, speed), frame, opts, text);
+        this.applyEffect(def.key, this.getPhase(frame, speed, this.getCycleFrames(def.key)), frame, opts, text);
       });
 
       if (animationLayout?.offsetY) {
@@ -325,7 +337,8 @@
       let top = Infinity;
       let bottom = -Infinity;
 
-      for (let frame = 0; frame < ANIMATION_TOTAL_FRAMES; frame++) {
+      const frameCount = this.getFrameCount();
+      for (let frame = 0; frame < frameCount; frame++) {
         const frameCanvas = drawEmoji(this.baseSize, fontSize, {
           ...this.buildFrameOptions(frame, baseText),
           skipBackground: true,
@@ -348,7 +361,8 @@
 
     buildGif(size, fontSize, animationLayout, drawEmoji, baseText) {
       var encoder = new GifEncoder(size, size);
-      for (var frame = 0; frame < ANIMATION_TOTAL_FRAMES; frame++) {
+      const frameCount = this.getFrameCount();
+      for (var frame = 0; frame < frameCount; frame++) {
         encoder.addFrame(
           drawEmoji(size, fontSize, this.buildFrameOptions(frame, baseText, animationLayout)),
           { delay: ANIMATION_FRAME_DELAY },
