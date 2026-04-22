@@ -564,6 +564,12 @@ button {
   min-width: 0;
 }
 
+.anim-checkbox-row {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+}
+
 @media (max-width: 560px) {
   .font-size-control-row {
     display: grid;

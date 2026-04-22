@@ -3,13 +3,17 @@
     { key: 'scale', label: '拡大縮小', defaultSpeed: 2, controls: [
       { key: 'amount', label: '拡大量', min: 10, max: 50, value: 30, suffix: '%' },
     ] },
-    { key: 'rotation', label: '回転', defaultSpeed: 1 },
+    { key: 'rotation', label: '回転', defaultSpeed: 1, toggles: [
+      { key: 'reverse', label: 'リバース', value: false },
+    ] },
     { key: 'shake', label: 'ぷるぷる', defaultSpeed: 4 },
     { key: 'bounce', label: 'ぴょんぴょん', defaultSpeed: 2 },
     { key: 'heartbeat', label: '心拍', defaultSpeed: 2 },
     { key: 'sway', label: 'ゆらゆら', defaultSpeed: 2 },
     { key: 'dodge', label: '反復横跳び', defaultSpeed: 2 },
-    { key: 'spinBack', label: 'ぐるん戻り', defaultSpeed: 1 },
+    { key: 'spinBack', label: 'ぐるん戻り', defaultSpeed: 1, toggles: [
+      { key: 'reverse', label: 'リバース', value: false },
+    ] },
     { key: 'pop', label: 'びっくりポップ', defaultSpeed: 2 },
     { key: 'jitter', label: 'ガタガタ暴走', defaultSpeed: 5 },
     { key: 'glitch', label: 'グリッチ', defaultSpeed: 4 },
@@ -137,8 +141,9 @@
       multiplyScale(opts, scale, scale);
     },
 
-    rotation({ phase, opts }) {
-      addRotation(opts, 360 * phase);
+    rotation({ phase, opts, getToggleValue }) {
+      const direction = getToggleValue('rotation', 'reverse') ? -1 : 1;
+      addRotation(opts, direction * 360 * phase);
     },
 
     shake({ phase, opts }) {
@@ -167,11 +172,12 @@
       addTranslate(opts, Math.sin(2 * Math.PI * phase) * 28, 0);
     },
 
-    spinBack({ phase, opts }) {
+    spinBack({ phase, opts, getToggleValue }) {
       const rotation = phase < 0.68
         ? 360 * easeOutCubic(phase / 0.68)
         : 360 * (1 - easeInOutCubic((phase - 0.68) / 0.32));
-      addRotation(opts, rotation);
+      const direction = getToggleValue('spinBack', 'reverse') ? -1 : 1;
+      addRotation(opts, direction * rotation);
     },
 
     pop({ phase, opts }) {
@@ -267,6 +273,11 @@
       return Number.isFinite(value) ? value : fallback;
     }
 
+    getToggleValue(key, toggleKey, fallback) {
+      const toggle = this.controls[key]?.toggles[toggleKey];
+      return toggle ? toggle.input.checked : Boolean(fallback);
+    }
+
     getPhase(frame, speed) {
       return ((frame / ANIMATION_TOTAL_FRAMES) * speed) % 1;
     }
@@ -284,6 +295,9 @@
         getSpeed: effectKey => this.getSpeed(effectKey),
         getControlValue: (effectKey, controlKey, fallback) => {
           return this.getControlValue(effectKey, controlKey, fallback);
+        },
+        getToggleValue: (effectKey, toggleKey, fallback) => {
+          return this.getToggleValue(effectKey, toggleKey, fallback);
         },
       });
     }
@@ -408,6 +422,7 @@
           { key: 'speed', label: '速度', min: 1, max: 5, value: def.defaultSpeed || 3, suffix: '' },
         ];
         const sliders = {};
+        const toggles = {};
 
         sliderDefs.forEach(controlDef => {
           const control = document.createElement('div');
@@ -450,6 +465,34 @@
           sliders[controlDef.key] = { input, value, def: controlDef };
         });
 
+        (def.toggles || []).forEach(toggleDef => {
+          const control = document.createElement('div');
+          control.className = 'anim-control anim-control-checkbox';
+
+          const controlLabel = document.createElement('label');
+          controlLabel.htmlFor = `anim-${def.key}-${toggleDef.key}`;
+          controlLabel.textContent = toggleDef.label;
+
+          const rowInner = document.createElement('div');
+          rowInner.className = 'anim-checkbox-row';
+
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.id = controlLabel.htmlFor;
+          input.checked = Boolean(toggleDef.value);
+
+          input.addEventListener('change', () => {
+            this.notifyChange();
+          });
+
+          rowInner.appendChild(input);
+          control.appendChild(controlLabel);
+          control.appendChild(rowInner);
+          sub.appendChild(control);
+
+          toggles[toggleDef.key] = { input, def: toggleDef };
+        });
+
         checkbox.addEventListener('change', () => {
           this.applyVisibility();
           this.notifyChange();
@@ -459,7 +502,7 @@
         row.appendChild(sub);
         this.container.appendChild(row);
 
-        controls[def.key] = { def, checkbox, sub, sliders };
+        controls[def.key] = { def, checkbox, sub, sliders, toggles };
       });
 
       return controls;
@@ -506,6 +549,9 @@
         Object.entries(control.sliders).forEach(([sliderKey, slider]) => {
           animations[key][sliderKey] = slider.input.value;
         });
+        Object.entries(control.toggles).forEach(([toggleKey, toggle]) => {
+          animations[key][toggleKey] = toggle.input.checked;
+        });
       });
       return animations;
     }
@@ -544,6 +590,11 @@
         Object.entries(control.sliders).forEach(([sliderKey, slider]) => {
           if (stored[sliderKey] !== undefined) {
             this.setSliderValue(slider, stored[sliderKey]);
+          }
+        });
+        Object.entries(control.toggles).forEach(([toggleKey, toggle]) => {
+          if (stored[toggleKey] !== undefined) {
+            toggle.input.checked = Boolean(stored[toggleKey]);
           }
         });
       });
