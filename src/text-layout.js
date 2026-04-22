@@ -108,13 +108,18 @@
       let fits;
       if (isCircle) {
         const chars = splitCharacters(text);
-        const radius = canvasSize * 0.45;
-        const charWidths = chars.map(ch => ctx.measureText(ch).width);
-        const totalArcWidth = charWidths.reduce((sum, w) => sum + w, 0);
-        const totalAngle = totalArcWidth / radius;
-        // Characters must fit along the arc without exceeding a half circle
-        // and the font size must not exceed the available space
-        fits = totalAngle <= Math.PI && mid <= available * 0.5;
+        if (chars.length === 2) {
+          // 2-char layout uses center of canvas with radius 0.32
+          fits = mid <= available * 0.45;
+        } else {
+          const radius = canvasSize * 0.45;
+          const charWidths = chars.map(ch => ctx.measureText(ch).width);
+          const totalArcWidth = charWidths.reduce((sum, w) => sum + w, 0);
+          const totalAngle = totalArcWidth / radius;
+          // Characters must fit along the arc without exceeding a half circle
+          // and the font size must not exceed the available space
+          fits = totalAngle <= Math.PI && mid <= available * 0.5;
+        }
       } else if (isVertical) {
         const columns = getVerticalColumns(text, lineBreakEnabled);
         const charHeight = mid * VERTICAL_METRIC_RATIO;
