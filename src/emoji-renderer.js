@@ -4,6 +4,7 @@
   const {
     VERTICAL_METRIC_RATIO,
     buildTightLineLayout,
+    getCircleRadius,
     getHorizontalLines,
     getVerticalColumns,
     splitCharacters,
@@ -191,7 +192,7 @@
       const scaledBorder = Math.round(settings.borderSize * (size / this.baseSize));
       const centerX = size / 2;
       const centerY = size / 2;
-      const radius = size * 0.32;
+      const radius = getCircleRadius(size, settings.circleDiameter * (size / this.baseSize));
 
       // Distribute characters evenly around the circle.
       // First character at top (-PI/2), subsequent characters clockwise.

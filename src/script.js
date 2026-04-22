@@ -4,6 +4,9 @@ const fontSizeVal      = document.getElementById('font-size-value');
 const fontAutoEl       = document.getElementById('font-size-auto');
 const lineBreakEl      = document.getElementById('line-break');
 const lineBreakLabel   = lineBreakEl.closest('.auto-label');
+const circleDiameterField = document.getElementById('circle-diameter-field');
+const circleDiameterEl    = document.getElementById('circle-diameter');
+const circleDiameterVal   = document.getElementById('circle-diameter-value');
 const fontFamSel       = document.getElementById('font-family');
 const textColorEl      = document.getElementById('text-color');
 const bgColorEl        = document.getElementById('bg-color');
@@ -31,6 +34,7 @@ const animContainer    = document.getElementById('anim-container');
 
 const BASE_SIZE = 128;
 const STORAGE_KEY = 'slackEmojiBuilderSettings';
+const DEFAULT_CIRCLE_DIAMETER = Math.round(BASE_SIZE * TextLayout.DEFAULT_CIRCLE_DIAMETER_RATIO);
 const DEFAULT_FONT_FAMILY = fontFamSel.options[0]?.value || 'sans-serif';
 const LEGACY_FONT_FAMILY_MAP = {
   'sans-serif': DEFAULT_FONT_FAMILY,
@@ -108,6 +112,7 @@ function setDirection(dir) {
     directionIndicator.classList.add('pos-2');
   }
   applyLineBreakAvailability();
+  applyCircleDiameterAvailability();
 }
 
 function applyLineBreakAvailability() {
@@ -124,6 +129,12 @@ function applyLineBreakAvailability() {
   if (lineBreakLabel) {
     lineBreakLabel.classList.toggle('disabled', isCircle);
   }
+}
+
+function applyCircleDiameterAvailability() {
+  const isCircle = currentDirection === 'circle';
+  circleDiameterField.hidden = !isCircle;
+  circleDiameterEl.disabled = !isCircle;
 }
 
 directionBtns.forEach(btn => {
@@ -190,6 +201,11 @@ const SETTING_FIELDS = [
     set: value => setColorValue(borderColorEl, borderHexEl, value),
   },
   {
+    key: 'circleDiameter',
+    get: () => circleDiameterEl.value,
+    set: value => setRangeValue(circleDiameterEl, circleDiameterVal, value, 'px'),
+  },
+  {
     key: 'direction',
     get: () => currentDirection,
     set: setDirection,
@@ -235,6 +251,7 @@ function loadSettings() {
 }
 
 loadSettings();
+applyCircleDiameterAvailability();
 
 function applyBgTransparent() {
   const isTransparent = bgTransparentEl.checked;
@@ -284,9 +301,9 @@ function bindColorInput(colorEl, hexEl) {
   hexEl.addEventListener('input', () => syncHexInput(hexEl, colorEl));
 }
 
-function setRangeValue(rangeEl, valueEl, value) {
+function setRangeValue(rangeEl, valueEl, value, suffix = '') {
   rangeEl.value = value;
-  valueEl.textContent = rangeEl.value;
+  valueEl.textContent = rangeEl.value + suffix;
 }
 
 bindColorInput(textColorEl, textHexEl);
@@ -295,6 +312,11 @@ bindColorInput(borderColorEl, borderHexEl);
 
 borderSizeEl.addEventListener('input', () => {
   setRangeValue(borderSizeEl, borderSizeVal, borderSizeEl.value);
+  saveSettings();
+});
+
+circleDiameterEl.addEventListener('input', () => {
+  setRangeValue(circleDiameterEl, circleDiameterVal, circleDiameterEl.value, 'px');
   saveSettings();
 });
 
@@ -333,6 +355,7 @@ function readCurrentSettings() {
     text: getBaseText(),
     fontSize: parseNumber(settings.fontSize, 32),
     borderSize: parseNumber(settings.borderSize, 0),
+    circleDiameter: parseNumber(settings.circleDiameter, DEFAULT_CIRCLE_DIAMETER),
   };
 }
 
@@ -366,6 +389,7 @@ generateBtn.addEventListener('click', async () => {
       borderSize: settings.borderSize,
       lineBreakEnabled: settings.lineBreak,
       direction: settings.direction,
+      circleDiameter: settings.circleDiameter,
     });
     setFontSizeValue(fontSize);
   }

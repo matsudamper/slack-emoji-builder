@@ -4,6 +4,7 @@
   const FALLBACK_ASCENT_RATIO = 0.8;
   const FALLBACK_DESCENT_RATIO = 0.2;
   const VERTICAL_METRIC_RATIO = 1.15;
+  const DEFAULT_CIRCLE_DIAMETER_RATIO = 0.64;
   const graphemeSegmenter = typeof Intl !== 'undefined' && Intl.Segmenter
     ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
     : null;
@@ -89,7 +90,14 @@
     return splitTextByHalf(text);
   }
 
-  function calculateAutoFontSize({ text, fontFamily, canvasSize, borderSize, lineBreakEnabled, direction }) {
+  function getCircleRadius(canvasSize, circleDiameter) {
+    const fallbackDiameter = canvasSize * DEFAULT_CIRCLE_DIAMETER_RATIO;
+    const parsedDiameter = parseFloat(circleDiameter);
+    const diameter = Number.isFinite(parsedDiameter) ? parsedDiameter : fallbackDiameter;
+    return Math.min(canvasSize, Math.max(0, diameter)) / 2;
+  }
+
+  function calculateAutoFontSize({ text, fontFamily, canvasSize, borderSize, lineBreakEnabled, direction, circleDiameter }) {
     const canvas = document.createElement('canvas');
     canvas.width = canvasSize;
     canvas.height = canvasSize;
@@ -109,12 +117,16 @@
       if (isCircle) {
         const chars = splitCharacters(text);
         const n = chars.length;
-        const radius = canvasSize * 0.32;
-        // Arc length per character segment
-        const arcPerChar = (2 * Math.PI * radius) / n;
-        const maxCharWidth = Math.max(...chars.map(ch => ctx.measureText(ch).width));
-        // Each character must fit within its arc segment and within the radius
-        fits = maxCharWidth <= arcPerChar && mid <= radius;
+        if (n === 0) {
+          fits = true;
+        } else {
+          const radius = getCircleRadius(canvasSize, circleDiameter);
+          // Arc length per character segment
+          const arcPerChar = (2 * Math.PI * radius) / n;
+          const maxCharWidth = Math.max(...chars.map(ch => ctx.measureText(ch).width));
+          // Each character must fit within its arc segment and within the radius
+          fits = maxCharWidth <= arcPerChar && mid <= radius;
+        }
       } else if (isVertical) {
         const columns = getVerticalColumns(text, lineBreakEnabled);
         const charHeight = mid * VERTICAL_METRIC_RATIO;
@@ -147,9 +159,11 @@
   }
 
   global.TextLayout = {
+    DEFAULT_CIRCLE_DIAMETER_RATIO,
     VERTICAL_METRIC_RATIO,
     buildTightLineLayout,
     calculateAutoFontSize,
+    getCircleRadius,
     getHorizontalLines,
     getVerticalColumns,
     splitCharacters,
