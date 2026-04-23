@@ -346,10 +346,28 @@
         addTranslate(opts, 0, animationLayout.offsetY);
       }
 
+      if (animationLayout?.drawOffsetY) {
+        opts.drawOffsetY = animationLayout.drawOffsetY;
+      }
+
       return opts;
     }
 
     buildLayout(fontSize, drawEmoji, baseText) {
+      // 静的フレーム（アニメーションなし）のアルファ境界を計測して絵文字の実際の
+      // 視覚的中心を求める。measureText() が返すフォントメトリクスはカラー絵文字等
+      // のフォールバックフォントでは実際の描画ピクセルとずれる場合があるため、
+      // alpha 境界から drawOffsetY を算出して文字の視覚的中心を回転軸に合わせる。
+      const staticCanvas = drawEmoji(this.baseSize, fontSize, {
+        text: baseText || ' ',
+        skipBackground: true,
+        outputPadding: this.measurePadding,
+      });
+      const staticBounds = measureCanvasAlphaBounds(staticCanvas, this.measurePadding);
+      const drawOffsetY = staticBounds
+        ? this.baseSize / 2 - (staticBounds.top + staticBounds.bottom + 1) / 2
+        : 0;
+
       let top = Infinity;
       let bottom = -Infinity;
 
@@ -357,6 +375,7 @@
       for (let frame = 0; frame < frameCount; frame++) {
         const frameCanvas = drawEmoji(this.baseSize, fontSize, {
           ...this.buildFrameOptions(frame, baseText),
+          drawOffsetY,
           skipBackground: true,
           outputPadding: this.measurePadding,
         });
@@ -368,11 +387,11 @@
       }
 
       if (!Number.isFinite(top) || !Number.isFinite(bottom)) {
-        return { offsetY: 0 };
+        return { offsetY: 0, drawOffsetY };
       }
 
       const animationCenterY = (top + bottom + 1) / 2;
-      return { offsetY: this.baseSize / 2 - animationCenterY };
+      return { offsetY: this.baseSize / 2 - animationCenterY, drawOffsetY };
     }
 
     buildGif(size, fontSize, animationLayout, drawEmoji, baseText) {

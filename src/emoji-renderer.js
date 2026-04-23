@@ -45,7 +45,9 @@
       ctx.translate(size / 2 + translateX, size / 2 + translateY);
       if (rotation) ctx.rotate(rotation * Math.PI / 180);
       if (scaleX !== 1 || scaleY !== 1) ctx.scale(scaleX, scaleY);
-      ctx.translate(-size / 2, -size / 2);
+      const drawOffsetX = (opts.drawOffsetX || 0) * (size / this.baseSize);
+      const drawOffsetY = (opts.drawOffsetY || 0) * (size / this.baseSize);
+      ctx.translate(-size / 2 + drawOffsetX, -size / 2 + drawOffsetY);
 
       const scaledFontSize = Math.round(fontSize * (size / this.baseSize));
       ctx.font = `bold ${scaledFontSize}px ${settings.fontFamily}`;
