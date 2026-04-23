@@ -340,6 +340,7 @@
       delay: opts.delay !== undefined ? opts.delay : 80,
       dispose: opts.dispose !== undefined ? opts.dispose : 2,
     });
+    this._cachedBytes = null;
   };
 
   /** Return the byte length of the encoded GIF (uses cached result). */
