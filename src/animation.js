@@ -6,6 +6,8 @@
     { key: 'rotation', label: '回転', defaultSpeed: 1, cycleFrames: 48, speedControl: { max: 10, value: 1, step: 1 }, toggles: [
       { key: 'reverse', label: 'リバース', value: false },
     ] },
+    { key: 'rotationX', label: 'X軸回転', defaultSpeed: 1, cycleFrames: 48, speedControl: { max: 10, value: 1, step: 1 } },
+    { key: 'rotationY', label: 'Y軸回転', defaultSpeed: 1, cycleFrames: 48, speedControl: { max: 10, value: 1, step: 1 } },
     { key: 'shake', label: 'ぷるぷる', defaultSpeed: 4 },
     { key: 'bounce', label: 'ぴょんぴょん', defaultSpeed: 2 },
     { key: 'heartbeat', label: '心拍', defaultSpeed: 2 },
@@ -146,6 +148,14 @@
     rotation({ phase, opts, getToggleValue }) {
       const direction = getToggleValue('rotation', 'reverse') ? -1 : 1;
       addRotation(opts, direction * 360 * phase);
+    },
+
+    rotationX({ phase, opts }) {
+      multiplyScale(opts, 1, Math.cos(2 * Math.PI * phase));
+    },
+
+    rotationY({ phase, opts }) {
+      multiplyScale(opts, Math.cos(2 * Math.PI * phase), 1);
     },
 
     shake({ phase, opts }) {
