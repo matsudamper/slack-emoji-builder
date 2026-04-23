@@ -342,8 +342,14 @@
     });
   };
 
+  /** Return the byte length of the encoded GIF (uses cached result). */
+  GifEncoder.prototype.byteLength = function () {
+    return this.encode().length;
+  };
+
   /** Encode all frames and return a Uint8Array of the complete GIF. */
   GifEncoder.prototype.encode = function () {
+    if (this._cachedBytes) return this._cachedBytes;
     var w = this.width;
     var h = this.height;
     var out = new ByteArray();
@@ -422,7 +428,8 @@
     /* --- Trailer --- */
     out.writeByte(0x3b);
 
-    return out.toUint8Array();
+    this._cachedBytes = out.toUint8Array();
+    return this._cachedBytes;
   };
 
   /** Return a Blob of type image/gif. */
