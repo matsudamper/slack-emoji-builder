@@ -30,6 +30,7 @@
   const ANIMATION_TOTAL_FRAMES = 24;
   const ANIMATION_FRAME_DELAY = 70;
   const ANIMATION_STORAGE_VERSION = 3;
+  const MAX_GIF_BYTES = 128 * 1024;
   const SLOT_CHARS = '!?#$%&*+0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const textLayout = typeof window !== 'undefined' ? window.TextLayout : null;
 
@@ -375,13 +376,19 @@
     }
 
     buildGif(size, fontSize, animationLayout, drawEmoji, baseText) {
-      var encoder = new GifEncoder(size, size);
       const frameCount = this.getFrameCount();
-      for (var frame = 0; frame < frameCount; frame++) {
-        encoder.addFrame(
-          drawEmoji(size, fontSize, this.buildFrameOptions(frame, baseText, animationLayout)),
-          { delay: ANIMATION_FRAME_DELAY },
-        );
+      for (let frameStep = 1; frameStep <= frameCount; frameStep *= 2) {
+        var encoder = new GifEncoder(size, size);
+        const delay = ANIMATION_FRAME_DELAY * frameStep;
+        for (var frame = 0; frame < frameCount; frame += frameStep) {
+          encoder.addFrame(
+            drawEmoji(size, fontSize, this.buildFrameOptions(frame, baseText, animationLayout)),
+            { delay },
+          );
+        }
+        if (encoder.byteLength() <= MAX_GIF_BYTES) {
+          return encoder;
+        }
       }
       return encoder;
     }
