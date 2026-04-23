@@ -239,6 +239,27 @@ button {
   width: 100%;
 }
 
+.preview-frame-slider {
+  width: 100%;
+  align-self: stretch;
+}
+
+.preview-frame-slider .frame-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.preview-frame-slider .font-size-row {
+  width: 100%;
+}
+
+.preview-frame-slider input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+
 .preview-panel {
   display: flex;
   flex-direction: column;

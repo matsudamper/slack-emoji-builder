@@ -14,6 +14,8 @@ const textHexEl        = document.getElementById('text-color-hex');
 const bgHexEl          = document.getElementById('bg-color-hex');
 const borderSizeEl     = document.getElementById('border-size');
 const borderSizeVal    = document.getElementById('border-size-value');
+const depthSizeEl      = document.getElementById('depth-size');
+const depthSizeVal     = document.getElementById('depth-size-value');
 const borderColorEl    = document.getElementById('border-color');
 const borderHexEl      = document.getElementById('border-color-hex');
 const bgTransparentEl  = document.getElementById('bg-transparent');
@@ -49,6 +51,8 @@ const FONT_SIZE_MAX = Math.max(FONT_SIZE_MIN, Math.round(BASE_SIZE * 0.625));
 const DEFAULT_FONT_SIZE = Math.round(BASE_SIZE * 0.25);
 const DEFAULT_BORDER_SIZE = 0;
 const BORDER_SIZE_MAX = Math.max(DEFAULT_BORDER_SIZE, Math.round(BASE_SIZE * 0.15625));
+const DEFAULT_DEPTH_SIZE = 0;
+const DEPTH_SIZE_MAX = Math.max(DEFAULT_DEPTH_SIZE, Math.round(BASE_SIZE * 0.125));
 const DEFAULT_CIRCLE_DIAMETER = Math.round(BASE_SIZE * TextLayout.DEFAULT_CIRCLE_DIAMETER_RATIO);
 const DEFAULT_FONT_FAMILY = fontFamSel.options[0]?.value || 'sans-serif';
 const LEGACY_FONT_FAMILY_MAP = {
@@ -79,6 +83,10 @@ const previewRenderer = new PreviewRenderer({
   downloadButton: downloadBtn,
   outputSize: OUTPUT_SIZE,
   previewSizes: PREVIEW_SIZES,
+  frameSliderWrap: document.getElementById('preview-frame-slider'),
+  frameSlider: document.getElementById('frame-slider'),
+  frameSliderValue: document.getElementById('frame-slider-value'),
+  frameAutoplay: document.getElementById('frame-autoplay'),
 });
 
 function isFontFamilyOption(value) {
@@ -203,6 +211,11 @@ const SETTING_FIELDS = [
     set: value => setColorValue(borderColorEl, borderHexEl, value),
   },
   {
+    key: 'depthSize',
+    get: () => depthSizeEl.value,
+    set: value => setRangeValue(depthSizeEl, depthSizeVal, value),
+  },
+  {
     key: 'circleDiameter',
     get: () => circleDiameterEl.value,
     set: value => setRangeValue(circleDiameterEl, circleDiameterVal, value, 'px'),
@@ -324,6 +337,9 @@ function initializeSizeDependentControls() {
   setRangeBounds(borderSizeEl, 0, BORDER_SIZE_MAX);
   setRangeValue(borderSizeEl, borderSizeVal, DEFAULT_BORDER_SIZE);
 
+  setRangeBounds(depthSizeEl, 0, DEPTH_SIZE_MAX);
+  setRangeValue(depthSizeEl, depthSizeVal, DEFAULT_DEPTH_SIZE);
+
   setRangeBounds(circleDiameterEl, 0, BASE_SIZE);
   setRangeValue(circleDiameterEl, circleDiameterVal, DEFAULT_CIRCLE_DIAMETER, 'px');
 }
@@ -337,6 +353,7 @@ function normalizeStoredSizeSettings(settings) {
     ...settings,
     fontSize: scaleStoredSizeValue(settings.fontSize, scale),
     borderSize: scaleStoredSizeValue(settings.borderSize, scale),
+    depthSize: scaleStoredSizeValue(settings.depthSize, scale),
     circleDiameter: scaleStoredSizeValue(settings.circleDiameter, scale),
   };
 }
@@ -353,6 +370,11 @@ bindColorInput(borderColorEl, borderHexEl);
 
 borderSizeEl.addEventListener('input', () => {
   setRangeValue(borderSizeEl, borderSizeVal, borderSizeEl.value);
+  saveSettings();
+});
+
+depthSizeEl.addEventListener('input', () => {
+  setRangeValue(depthSizeEl, depthSizeVal, depthSizeEl.value);
   saveSettings();
 });
 
@@ -395,6 +417,7 @@ function readCurrentSettings() {
     text: getBaseText(),
     fontSize: parseNumber(settings.fontSize, DEFAULT_FONT_SIZE),
     borderSize: parseNumber(settings.borderSize, DEFAULT_BORDER_SIZE),
+    depthSize: parseNumber(settings.depthSize, DEFAULT_DEPTH_SIZE),
     circleDiameter: parseNumber(settings.circleDiameter, DEFAULT_CIRCLE_DIAMETER),
   };
 }

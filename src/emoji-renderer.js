@@ -40,29 +40,85 @@
         ctx.fillRect(0, 0, size, size);
       }
 
-      ctx.save();
-      if (opts.alpha !== undefined) ctx.globalAlpha = opts.alpha;
-      ctx.translate(size / 2 + translateX, size / 2 + translateY);
-      if (rotation) ctx.rotate(rotation * Math.PI / 180);
-      if (scaleX !== 1 || scaleY !== 1) ctx.scale(scaleX, scaleY);
-      ctx.translate(-size / 2, -size / 2);
-
       const scaledFontSize = Math.round(fontSize * (size / this.baseSize));
-      ctx.font = `bold ${scaledFontSize}px ${settings.fontFamily}`;
-
+      const textFill = opts.textColor || settings.textColor;
+      const borderFill = opts.borderColor || settings.borderColor;
       const drawOpts = {
         text: opts.text !== undefined ? opts.text : settings.text,
-        textColor: opts.textColor || settings.textColor,
-        borderColor: opts.borderColor || settings.borderColor,
+        textColor: textFill,
+        borderColor: borderFill,
       };
 
-      if (opts.glitch) {
-        this.drawGlitchText(ctx, size, scaledFontSize, settings, drawOpts, opts);
-      } else {
-        this.drawTextLayer(ctx, size, scaledFontSize, settings, drawOpts);
+      const depth = Math.max(0, Math.round(settings.depthSize || 0));
+      let depthX = opts.depthX;
+      let depthY = opts.depthY;
+      if (depth > 0 && depthX === undefined && depthY === undefined) {
+        depthX = Math.SQRT1_2;
+        depthY = Math.SQRT1_2;
+      }
+      depthX = depthX || 0;
+      depthY = depthY || 0;
+      const hasDepth = depth > 0 && (depthX !== 0 || depthY !== 0);
+      const sideColor = (settings.borderSize > 0) ? borderFill : textFill;
+
+      const renderOnto = (targetCtx, sx, sy, layerOpts) => {
+        targetCtx.save();
+        targetCtx.translate(size / 2, size / 2);
+        if (rotation) targetCtx.rotate(rotation * Math.PI / 180);
+        if (sx !== 1 || sy !== 1) targetCtx.scale(sx, sy);
+        targetCtx.translate(-size / 2, -size / 2);
+        targetCtx.font = `bold ${scaledFontSize}px ${settings.fontFamily}`;
+        if (opts.glitch) {
+          this.drawGlitchText(targetCtx, size, scaledFontSize, settings, layerOpts, opts);
+        } else {
+          this.drawTextLayer(targetCtx, size, scaledFontSize, settings, layerOpts);
+        }
+        targetCtx.restore();
+      };
+
+      const textCanvas = document.createElement('canvas');
+      textCanvas.width = size;
+      textCanvas.height = size;
+      const textCtx = textCanvas.getContext('2d');
+      renderOnto(textCtx, scaleX, scaleY, drawOpts);
+
+      let silCanvas = null;
+      if (hasDepth) {
+        const silFloor = 0.1 * Math.min(1, Math.max(Math.abs(depthX), Math.abs(depthY)));
+        const silScaleX = (Math.abs(scaleX) < silFloor ? (scaleX < 0 ? -silFloor : silFloor) : scaleX);
+        const silScaleY = (Math.abs(scaleY) < silFloor ? (scaleY < 0 ? -silFloor : silFloor) : scaleY);
+
+        silCanvas = document.createElement('canvas');
+        silCanvas.width = size;
+        silCanvas.height = size;
+        const silCtx = silCanvas.getContext('2d');
+        renderOnto(silCtx, silScaleX, silScaleY, { ...drawOpts, textColor: sideColor, borderColor: sideColor });
       }
 
+      ctx.save();
+      if (opts.alpha !== undefined) ctx.globalAlpha = opts.alpha;
+      if (hasDepth) {
+        const density = 4;
+        const stepCount = depth * density;
+        const halfSteps = stepCount / 2;
+        const cosFront = scaleX * scaleY;
+        const reverse = cosFront < 0;
+        for (let i = 0; i <= stepCount; i++) {
+          const idx = reverse ? (stepCount - i) : i;
+          const t = (idx - halfSteps) / density;
+          ctx.drawImage(silCanvas, translateX + depthX * t * unit, translateY + depthY * t * unit);
+        }
+        const halfDepth = depth / 2;
+        if (cosFront > 0) {
+          ctx.drawImage(textCanvas, translateX + depthX * halfDepth * unit, translateY + depthY * halfDepth * unit);
+        } else if (cosFront < 0) {
+          ctx.drawImage(textCanvas, translateX - depthX * halfDepth * unit, translateY - depthY * halfDepth * unit);
+        }
+      } else {
+        ctx.drawImage(textCanvas, translateX, translateY);
+      }
       ctx.restore();
+
       ctx.restore();
       return canvas;
     }

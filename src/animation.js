@@ -152,10 +152,14 @@
 
     rotationX({ phase, opts }) {
       multiplyScale(opts, 1, Math.cos(2 * Math.PI * phase));
+      opts.depthY = (opts.depthY || 0) + Math.sin(2 * Math.PI * phase);
+      if (opts.depthX === undefined) opts.depthX = 0;
     },
 
     rotationY({ phase, opts }) {
       multiplyScale(opts, Math.cos(2 * Math.PI * phase), 1);
+      opts.depthX = (opts.depthX || 0) + Math.sin(2 * Math.PI * phase);
+      if (opts.depthY === undefined) opts.depthY = 0;
     },
 
     shake({ phase, opts }) {
@@ -695,6 +699,14 @@
 
     buildGif(size, fontSize, animationLayout, drawEmoji, baseText) {
       return this.engine.buildGif(size, fontSize, animationLayout, drawEmoji, baseText);
+    }
+
+    buildFrameOptions(frame, baseText, animationLayout) {
+      return this.engine.buildFrameOptions(frame, baseText, animationLayout);
+    }
+
+    getFrameCount() {
+      return this.engine.getFrameCount();
     }
   }
 

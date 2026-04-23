@@ -110,6 +110,14 @@
         <div class="field"></div>
       </div>
 
+      <div class="field">
+        <label for="depth-size">厚み</label>
+        <div class="font-size-row">
+          <input type="range" id="depth-size" />
+          <span id="depth-size-value" class="font-size-value"></span>
+        </div>
+      </div>
+
       <div class="field animation-field">
         <div class="animation-header">
           <button type="button" class="animation-toggle" id="animation-toggle" aria-expanded="true" aria-controls="animation-body">
@@ -135,6 +143,19 @@
         <div class="preview-panel">
           <span class="preview-theme-label">ライト</span>
           <div class="canvas-wrap canvas-wrap--light" id="canvas-wrap-light"></div>
+        </div>
+      </div>
+      <div class="field preview-frame-slider" id="preview-frame-slider" hidden>
+        <div class="frame-slider-header">
+          <label for="frame-slider">フレーム</label>
+          <label class="auto-label">
+            <input type="checkbox" id="frame-autoplay" checked />
+            自動再生
+          </label>
+        </div>
+        <div class="font-size-row">
+          <input type="range" id="frame-slider" min="0" max="0" value="0" step="1" />
+          <span id="frame-slider-value" class="font-size-value">0</span>
         </div>
       </div>
       <div class="preview-actions">
