@@ -97,7 +97,7 @@
     return Math.min(canvasSize, Math.max(0, diameter)) / 2;
   }
 
-  function calculateAutoFontSize({ text, fontFamily, canvasSize, borderSize, lineBreakEnabled, direction, circleDiameter }) {
+  function calculateAutoFontSize({ text, fontFamily, canvasSize, borderSize, lineBreakEnabled, direction, circleDiameter, maxFontSize }) {
     const canvas = document.createElement('canvas');
     canvas.width = canvasSize;
     canvas.height = canvasSize;
@@ -107,8 +107,11 @@
     const isVertical = direction === 'vertical';
     const isCircle = direction === 'circle';
 
+    const upperLimit = Number.isFinite(maxFontSize) && maxFontSize > 0
+      ? Math.floor(maxFontSize)
+      : canvasSize * 2;
     let lo = 1;
-    let hi = canvasSize;
+    let hi = Math.max(1, upperLimit);
     while (lo < hi) {
       const mid = Math.ceil((lo + hi) / 2);
       ctx.font = `bold ${mid}px ${fontFamily}`;

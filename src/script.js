@@ -47,7 +47,7 @@ const STORAGE_KEY = 'slackEmojiBuilderSettings';
 const SETTINGS_BASE_SIZE_KEY = 'settingsBaseSize';
 const LEGACY_SETTINGS_BASE_SIZE = 128;
 const FONT_SIZE_MIN = Math.max(1, Math.round(BASE_SIZE * 0.0625));
-const FONT_SIZE_MAX = Math.max(FONT_SIZE_MIN, Math.round(BASE_SIZE * 0.625));
+const FONT_SIZE_MAX = Math.max(FONT_SIZE_MIN, BASE_SIZE * 2);
 const DEFAULT_FONT_SIZE = Math.round(BASE_SIZE * 0.25);
 const DEFAULT_BORDER_SIZE = 0;
 const BORDER_SIZE_MAX = Math.max(DEFAULT_BORDER_SIZE, Math.round(BASE_SIZE * 0.15625));
@@ -453,6 +453,7 @@ generateBtn.addEventListener('click', async () => {
       lineBreakEnabled: settings.lineBreak,
       direction: settings.direction,
       circleDiameter: settings.circleDiameter,
+      maxFontSize: FONT_SIZE_MAX,
     });
     setFontSizeValue(fontSize);
   }
