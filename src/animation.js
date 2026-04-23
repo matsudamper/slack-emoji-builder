@@ -3,7 +3,7 @@
     { key: 'scale', label: '拡大縮小', defaultSpeed: 2, controls: [
       { key: 'amount', label: '拡大量', min: 10, max: 50, value: 30, suffix: '%' },
     ] },
-    { key: 'rotation', label: '回転', defaultSpeed: 1, cycleFrames: 48, speedControl: { max: 10, value: 2, step: 1, speedDivisor: 2 }, toggles: [
+    { key: 'rotation', label: '回転', defaultSpeed: 1, cycleFrames: 48, speedControl: { max: 10, value: 1, step: 1 }, toggles: [
       { key: 'reverse', label: 'リバース', value: false },
     ] },
     { key: 'shake', label: 'ぷるぷる', defaultSpeed: 4 },
@@ -29,7 +29,7 @@
   const DEFAULT_BASE_SIZE = 128;
   const ANIMATION_TOTAL_FRAMES = 24;
   const ANIMATION_FRAME_DELAY = 70;
-  const ANIMATION_STORAGE_VERSION = 2;
+  const ANIMATION_STORAGE_VERSION = 3;
   const SLOT_CHARS = '!?#$%&*+0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const textLayout = typeof window !== 'undefined' ? window.TextLayout : null;
 
@@ -616,12 +616,14 @@
       if (settings.animationStorageVersion >= ANIMATION_STORAGE_VERSION) return value;
 
       const speed = parseFloat(value);
-      const divisor = slider.def.speedDivisor;
-      if (!Number.isFinite(speed) || !Number.isFinite(divisor)) return value;
+      if (!Number.isFinite(speed)) return value;
 
       const min = parseInt(slider.input.min, 10);
       const max = parseInt(slider.input.max, 10);
-      return String(Math.min(max, Math.max(min, Math.round(speed * divisor))));
+      const version = settings.animationStorageVersion || 0;
+      // v2 stored slider values 1-10 with speedDivisor=2 (effective speed 0.5-5), convert to direct speed 1-10
+      const normalized = version === 2 ? Math.round(speed / 2) : Math.round(speed);
+      return String(Math.min(max, Math.max(min, normalized)));
     }
 
     applyStoredAnimationSettings(settings) {
