@@ -670,10 +670,10 @@ button {
 
 @media (prefers-color-scheme: light) {
   .github-link {
-    color: rgba(255, 255, 255, 0.75);
+    color: rgba(0, 0, 0, 0.6);
   }
 
   .github-link:hover {
-    color: rgba(255, 255, 255, 0.95);
+    color: rgba(0, 0, 0, 0.85);
   }
 }
