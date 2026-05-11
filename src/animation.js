@@ -389,14 +389,47 @@
       return { offsetY: this.baseSize / 2 - animationCenterY };
     }
 
-    buildGif(size, fontSize, animationLayout, drawEmoji, baseText) {
+    buildFrame(frame, size, fontSize, animationLayout, drawEmoji, baseText, afterimageOpts) {
+      const currentCanvas = drawEmoji(size, fontSize, this.buildFrameOptions(frame, baseText, animationLayout));
+
+      if (!afterimageOpts || !afterimageOpts.enabled || afterimageOpts.count <= 0) {
+        return currentCanvas;
+      }
+
+      const frameCount = this.getFrameCount();
+      const trailCount = afterimageOpts.count;
+      const trailStrength = afterimageOpts.strength / 100;
+
+      const composite = document.createElement('canvas');
+      composite.width = size;
+      composite.height = size;
+      const ctx = composite.getContext('2d');
+
+      // Draw trail frames oldest-first with increasing opacity
+      for (let t = trailCount; t >= 1; t--) {
+        const trailFrame = ((frame - t) % frameCount + frameCount) % frameCount;
+        const alpha = trailStrength * (trailCount - t + 1) / trailCount;
+        const trailCanvas = drawEmoji(size, fontSize, this.buildFrameOptions(trailFrame, baseText, animationLayout));
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(trailCanvas, 0, 0);
+        ctx.restore();
+      }
+
+      // Draw current frame at full opacity on top
+      ctx.drawImage(currentCanvas, 0, 0);
+
+      return composite;
+    }
+
+    buildGif(size, fontSize, animationLayout, drawEmoji, baseText, afterimageOpts) {
       const frameCount = this.getFrameCount();
       for (let frameStep = 1; frameStep <= frameCount; frameStep *= 2) {
         var encoder = new GifEncoder(size, size);
         const delay = ANIMATION_FRAME_DELAY * frameStep;
         for (var frame = 0; frame < frameCount; frame += frameStep) {
           encoder.addFrame(
-            drawEmoji(size, fontSize, this.buildFrameOptions(frame, baseText, animationLayout)),
+            this.buildFrame(frame, size, fontSize, animationLayout, drawEmoji, baseText, afterimageOpts),
             { delay },
           );
         }
@@ -419,6 +452,7 @@
       this.baseSize = baseSize || DEFAULT_BASE_SIZE;
       this.expanded = true;
       this.controls = this.buildControls();
+      this.afterimage = this.buildAfterimageSection();
       this.engine = new AnimationEngine({
         controls: this.controls,
         baseSize: this.baseSize,
@@ -433,6 +467,9 @@
         Object.values(this.controls).forEach(control => {
           control.checkbox.checked = false;
         });
+        this.afterimage.checkbox.checked = false;
+        this.afterimage.sub.classList.remove('visible');
+        this.afterimage.sub.setAttribute('aria-hidden', 'true');
         this.applyVisibility();
         this.notifyChange();
       });
@@ -561,6 +598,82 @@
       return controls;
     }
 
+    buildAfterimageSection() {
+      const row = document.createElement('div');
+      row.className = 'anim-row anim-afterimage-row';
+
+      const label = document.createElement('label');
+      label.className = 'auto-label';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = 'anim-afterimage';
+      label.appendChild(checkbox);
+      label.appendChild(document.createTextNode('残像'));
+
+      const sub = document.createElement('div');
+      sub.className = 'anim-sub';
+      sub.id = 'anim-afterimage-controls';
+      sub.setAttribute('aria-hidden', 'true');
+
+      const sliders = {};
+      const sliderDefs = [
+        { key: 'count', label: 'フレーム数', min: 1, max: 5, value: 3, suffix: '' },
+        { key: 'strength', label: '強さ', min: 10, max: 80, value: 40, suffix: '%' },
+      ];
+
+      sliderDefs.forEach(controlDef => {
+        const control = document.createElement('div');
+        control.className = 'anim-control';
+
+        const controlId = `anim-afterimage-${controlDef.key}`;
+
+        const controlLabel = document.createElement('label');
+        controlLabel.htmlFor = controlId;
+        controlLabel.textContent = controlDef.label;
+
+        const rowInner = document.createElement('div');
+        rowInner.className = 'font-size-row';
+
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.id = controlId;
+        input.min = controlDef.min;
+        input.max = controlDef.max;
+        input.value = controlDef.value;
+
+        const valueSpan = document.createElement('span');
+        valueSpan.className = 'font-size-value';
+        valueSpan.id = controlId + '-value';
+        valueSpan.textContent = formatSliderValue(controlDef, input.value);
+
+        input.addEventListener('input', () => {
+          valueSpan.textContent = formatSliderValue(controlDef, input.value);
+          this.notifyChange();
+        });
+
+        rowInner.appendChild(input);
+        rowInner.appendChild(valueSpan);
+        control.appendChild(controlLabel);
+        control.appendChild(rowInner);
+        sub.appendChild(control);
+
+        sliders[controlDef.key] = { input, value: valueSpan, def: controlDef };
+      });
+
+      checkbox.addEventListener('change', () => {
+        sub.classList.toggle('visible', checkbox.checked);
+        sub.setAttribute('aria-hidden', String(!checkbox.checked));
+        this.notifyChange();
+      });
+
+      row.appendChild(label);
+      row.appendChild(sub);
+      this.container.appendChild(row);
+
+      return { checkbox, sliders, sub };
+    }
+
     setSliderValue(slider, value) {
       if (!slider || value === undefined) return;
       slider.input.value = value;
@@ -619,6 +732,11 @@
         scaleAmount: animations.scale.amount,
         animRotation: animations.rotation.enabled,
         rotationSpeed: animations.rotation.speed,
+        afterimage: {
+          enabled: this.afterimage.checkbox.checked,
+          count: this.afterimage.sliders.count.input.value,
+          strength: this.afterimage.sliders.strength.input.value,
+        },
       };
     }
 
@@ -687,6 +805,21 @@
       }
 
       this.applyVisibility();
+
+      if (settings.afterimage) {
+        if (settings.afterimage.enabled !== undefined) {
+          this.afterimage.checkbox.checked = Boolean(settings.afterimage.enabled);
+        }
+        if (settings.afterimage.count !== undefined) {
+          this.setSliderValue(this.afterimage.sliders.count, settings.afterimage.count);
+        }
+        if (settings.afterimage.strength !== undefined) {
+          this.setSliderValue(this.afterimage.sliders.strength, settings.afterimage.strength);
+        }
+        const visible = this.afterimage.checkbox.checked;
+        this.afterimage.sub.classList.toggle('visible', visible);
+        this.afterimage.sub.setAttribute('aria-hidden', String(!visible));
+      }
     }
 
     isEnabled() {
@@ -697,8 +830,20 @@
       return this.engine.buildLayout(fontSize, drawEmoji, baseText);
     }
 
+    getAfterimageOpts() {
+      const enabled = this.afterimage.checkbox.checked;
+      if (!enabled) return { enabled: false };
+      const count = parseInt(this.afterimage.sliders.count.input.value, 10) || 3;
+      const strength = parseInt(this.afterimage.sliders.strength.input.value, 10) || 40;
+      return { enabled, count, strength };
+    }
+
+    buildFrame(frame, size, fontSize, animationLayout, drawEmoji, baseText) {
+      return this.engine.buildFrame(frame, size, fontSize, animationLayout, drawEmoji, baseText, this.getAfterimageOpts());
+    }
+
     buildGif(size, fontSize, animationLayout, drawEmoji, baseText) {
-      return this.engine.buildGif(size, fontSize, animationLayout, drawEmoji, baseText);
+      return this.engine.buildGif(size, fontSize, animationLayout, drawEmoji, baseText, this.getAfterimageOpts());
     }
 
     buildFrameOptions(frame, baseText, animationLayout) {

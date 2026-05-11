@@ -165,13 +165,12 @@
       if (!ctx) return;
       const frame = this.frameSlider ? parseInt(this.frameSlider.value, 10) || 0 : 0;
       const { fontSize, text, drawEmoji, animationManager, animationLayout } = ctx;
-      const frameOpts = animationManager.buildFrameOptions(frame, text, animationLayout);
 
       this.darkWrap.replaceChildren();
       this.lightWrap.replaceChildren();
       [this.darkWrap, this.lightWrap].forEach(wrap => {
         this.previewSizes.forEach(({ size, label }) => {
-          const canvas = drawEmoji(size, fontSize, frameOpts);
+          const canvas = animationManager.buildFrame(frame, size, fontSize, animationLayout, drawEmoji, text);
           wrap.appendChild(createSizeBox(decorateCanvas(canvas, size, label), label));
         });
       });

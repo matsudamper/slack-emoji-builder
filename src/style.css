@@ -648,3 +648,9 @@ button {
 .anim-sub.visible {
   display: flex;
 }
+
+.anim-afterimage-row {
+  border-top: 1px solid var(--color-border);
+  padding-top: 8px;
+  margin-top: 4px;
+}
