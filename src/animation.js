@@ -424,10 +424,11 @@
 
     buildGif(size, fontSize, animationLayout, drawEmoji, baseText, afterimageOpts) {
       const frameCount = this.getFrameCount();
+      let encoder;
       for (let frameStep = 1; frameStep <= frameCount; frameStep *= 2) {
-        var encoder = new GifEncoder(size, size);
+        encoder = new GifEncoder(size, size);
         const delay = ANIMATION_FRAME_DELAY * frameStep;
-        for (var frame = 0; frame < frameCount; frame += frameStep) {
+        for (let frame = 0; frame < frameCount; frame += frameStep) {
           encoder.addFrame(
             this.buildFrame(frame, size, fontSize, animationLayout, drawEmoji, baseText, afterimageOpts),
             { delay },
