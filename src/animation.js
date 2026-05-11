@@ -399,6 +399,7 @@
       const frameCount = this.getFrameCount();
       const trailCount = afterimageOpts.count;
       const trailStrength = afterimageOpts.strength / 100;
+      const trailSpacing = afterimageOpts.spacing || 1;
 
       const composite = document.createElement('canvas');
       composite.width = size;
@@ -408,11 +409,13 @@
       // Draw trail frames oldest-first with increasing opacity
       for (let t = trailCount; t >= 1; t--) {
         // Wrap negative frame indices to positive using double modulo
-        const trailFrame = ((frame - t) % frameCount + frameCount) % frameCount;
-        const alpha = trailStrength * (trailCount - t + 1) / trailCount;
+        const trailFrame = ((frame - t * trailSpacing) % frameCount + frameCount) % frameCount;
+        const alphaProgress = (trailCount - t + 1) / trailCount;
+        const alpha = Math.min(1, trailStrength * Math.pow(alphaProgress, 0.65));
         const trailCanvas = drawEmoji(size, fontSize, this.buildFrameOptions(trailFrame, baseText, animationLayout));
         ctx.save();
         ctx.globalAlpha = alpha;
+        ctx.globalCompositeOperation = 'lighter';
         ctx.drawImage(trailCanvas, 0, 0);
         ctx.restore();
       }
@@ -622,8 +625,9 @@
 
       const sliders = {};
       const sliderDefs = [
-        { key: 'count', label: 'フレーム数', min: 1, max: 5, value: 3, suffix: '' },
-        { key: 'strength', label: '強さ', min: 10, max: 80, value: 40, suffix: '%' },
+        { key: 'count', label: 'フレーム数', min: 1, max: 10, value: 4, suffix: '' },
+        { key: 'spacing', label: '間隔', min: 1, max: 4, value: 1, suffix: '' },
+        { key: 'strength', label: '強さ', min: 10, max: 100, value: 50, suffix: '%' },
       ];
 
       sliderDefs.forEach(controlDef => {
@@ -739,6 +743,7 @@
         afterimage: {
           enabled: this.afterimage.checkbox.checked,
           count: this.afterimage.sliders.count.input.value,
+          spacing: this.afterimage.sliders.spacing.input.value,
           strength: this.afterimage.sliders.strength.input.value,
         },
       };
@@ -817,6 +822,9 @@
         if (settings.afterimage.count !== undefined) {
           this.setSliderValue(this.afterimage.sliders.count, settings.afterimage.count);
         }
+        if (settings.afterimage.spacing !== undefined) {
+          this.setSliderValue(this.afterimage.sliders.spacing, settings.afterimage.spacing);
+        }
         if (settings.afterimage.strength !== undefined) {
           this.setSliderValue(this.afterimage.sliders.strength, settings.afterimage.strength);
         }
@@ -837,9 +845,10 @@
     getAfterimageOpts() {
       const enabled = this.afterimage.checkbox.checked;
       if (!enabled) return { enabled: false };
-      const count = parseInt(this.afterimage.sliders.count.input.value, 10) || 3;
-      const strength = parseInt(this.afterimage.sliders.strength.input.value, 10) || 40;
-      return { enabled, count, strength };
+      const count = parseInt(this.afterimage.sliders.count.input.value, 10) || 4;
+      const spacing = parseInt(this.afterimage.sliders.spacing.input.value, 10) || 1;
+      const strength = parseInt(this.afterimage.sliders.strength.input.value, 10) || 50;
+      return { enabled, count, spacing, strength };
     }
 
     buildFrame(frame, size, fontSize, animationLayout, drawEmoji, baseText) {
