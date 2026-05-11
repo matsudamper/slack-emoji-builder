@@ -406,21 +406,27 @@
       composite.height = size;
       const ctx = composite.getContext('2d');
 
-      // Draw trail frames oldest-first with increasing opacity
-      for (let t = trailCount; t >= 1; t--) {
-        // Wrap negative frame indices to positive using double modulo
+      // 「強さ」は不透明度ではなくモーションブラー量を制御する。
+      // 古い残像ほど強くぼかして尾を引かせ、alpha は強さに依らず固定の
+      // フェードカーブで適用する。残像は destination-over で現在フレーム
+      // の背面に流し込み、現在フレームが空けた部分にのみ現れる。
+      ctx.drawImage(currentCanvas, 0, 0);
+
+      const maxBlurPx = trailStrength * size * 0.08;
+      ctx.globalCompositeOperation = 'destination-over';
+      for (let t = 1; t <= trailCount; t++) {
         const trailFrame = ((frame - t * trailSpacing) % frameCount + frameCount) % frameCount;
-        const alphaProgress = (trailCount - t + 1) / trailCount;
-        const alpha = Math.min(1, trailStrength * Math.pow(alphaProgress, 0.65));
+        const ageRatio = trailCount > 1 ? (t - 1) / (trailCount - 1) : 0;
+        const blurPx = maxBlurPx * (0.3 + 0.7 * ageRatio);
+        const alpha = 0.6 * (1 - 0.8 * ageRatio);
         const trailCanvas = drawEmoji(size, fontSize, this.buildFrameOptions(trailFrame, baseText, animationLayout));
-        ctx.save();
+        ctx.filter = `blur(${blurPx.toFixed(2)}px)`;
         ctx.globalAlpha = alpha;
         ctx.drawImage(trailCanvas, 0, 0);
-        ctx.restore();
       }
-
-      // Draw current frame at full opacity on top
-      ctx.drawImage(currentCanvas, 0, 0);
+      ctx.filter = 'none';
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.globalAlpha = 1;
 
       return composite;
     }
