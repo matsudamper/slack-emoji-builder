@@ -407,6 +407,7 @@
 
       // Draw trail frames oldest-first with increasing opacity
       for (let t = trailCount; t >= 1; t--) {
+        // Wrap negative frame indices to positive using double modulo
         const trailFrame = ((frame - t) % frameCount + frameCount) % frameCount;
         const alpha = trailStrength * (trailCount - t + 1) / trailCount;
         const trailCanvas = drawEmoji(size, fontSize, this.buildFrameOptions(trailFrame, baseText, animationLayout));
@@ -424,6 +425,8 @@
 
     buildGif(size, fontSize, animationLayout, drawEmoji, baseText, afterimageOpts) {
       const frameCount = this.getFrameCount();
+      // encoder is declared outside the loop so the last attempt can be returned
+      // as a fallback if no attempt fits within MAX_GIF_BYTES.
       let encoder;
       for (let frameStep = 1; frameStep <= frameCount; frameStep *= 2) {
         encoder = new GifEncoder(size, size);
