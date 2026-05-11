@@ -415,7 +415,6 @@
         const trailCanvas = drawEmoji(size, fontSize, this.buildFrameOptions(trailFrame, baseText, animationLayout));
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.globalCompositeOperation = 'lighter';
         ctx.drawImage(trailCanvas, 0, 0);
         ctx.restore();
       }
