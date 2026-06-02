@@ -244,7 +244,7 @@
       ctx.textBaseline = 'middle';
 
       const text = drawOpts.text || ' ';
-      const chars = splitCharacters(text);
+      const chars = splitCharacters(text.replace(/\n/g, ''));
       if (chars.length === 0) return;
 
       const scaledBorder = Math.round(settings.borderSize * (size / this.baseSize));

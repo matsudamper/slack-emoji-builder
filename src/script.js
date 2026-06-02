@@ -141,6 +141,17 @@ function setDirection(dir) {
 function applyLineBreakAvailability() {
   const isCircle = currentDirection === 'circle';
   lineBreakField.hidden = isCircle;
+  if (!isCircle) applyMultilineState();
+}
+
+function applyMultilineState() {
+  const multiline = textInput.value.includes('\n');
+  if (multiline) {
+    lineBreakEl.checked = false;
+    lineBreakEl.disabled = true;
+  } else {
+    lineBreakEl.disabled = false;
+  }
 }
 
 function applyCircleDiameterAvailability() {
@@ -271,6 +282,7 @@ function loadSettings() {
 initializeSizeDependentControls();
 loadSettings();
 applyCircleDiameterAvailability();
+applyMultilineState();
 
 function applyBgTransparent() {
   const isTransparent = bgTransparentEl.checked;
@@ -395,6 +407,9 @@ fontAutoEl.addEventListener('change', () => {
 
 lineBreakEl.addEventListener('change', () => {
   saveSettings();
+});
+textInput.addEventListener('input', () => {
+  applyMultilineState();
 });
 fontFamSel.addEventListener('change',  () => { saveSettings(); });
 
