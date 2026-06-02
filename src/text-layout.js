@@ -79,6 +79,15 @@
   }
 
   function getHorizontalLines(ctx, text, maxWidth, lineBreakEnabled) {
+    if (text.includes('\n')) {
+      const explicitLines = text.split('\n');
+      const result = [];
+      for (const line of explicitLines) {
+        const wrapped = wrapText(ctx, line || ' ', maxWidth);
+        result.push(...wrapped);
+      }
+      return result.length ? result : [' '];
+    }
     if (lineBreakEnabled) {
       return splitTextByHalf(text);
     }
@@ -86,6 +95,10 @@
   }
 
   function getVerticalColumns(text, lineBreakEnabled) {
+    if (text.includes('\n')) {
+      const cols = text.split('\n').filter(col => col.length > 0);
+      return cols.length ? cols : [text];
+    }
     if (!lineBreakEnabled) return [text];
     return splitTextByHalf(text);
   }
@@ -118,7 +131,7 @@
 
       let fits;
       if (isCircle) {
-        const chars = splitCharacters(text);
+        const chars = splitCharacters(text.replace(/\n/g, ''));
         const n = chars.length;
         if (n === 0) {
           fits = true;
